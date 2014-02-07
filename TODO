@@ -1,0 +1,24 @@
+JADM
+
+TO DO list: not in order
+
+1. auto install jadm reuired libs (alert if something miss probably auto install - pip)
+2. fix initsetup bridge setup check (if not exist)
+3. fix initsetup zfs zpool check (if not exist)
+4. in create bridge should be first (check for bugs)
+5. check gateway ip and ip addres !=
+6. jail envoirment install
+ - bsdinstall
+ - src
+ --- test for bugs
+ --- postinstall
+7. fix jail consistens during start / stop / create
+8. stop/start jail for each jail changes (to be tested)
+9. modify - if jail root is not modified
+10. jexec shell
+11. include zfs quota create/modify
+12. jadm src comments 
+13. def() organizations
+14. template
+15. migration - ?
+
