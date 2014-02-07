@@ -28,7 +28,8 @@ import netifaces
 
 # Main config vars:
 
-jailconf = 'jail.conf'
+# FreeBSD jail config file
+jailconf = '/etc/jail.conf'
 
 bridge_int = ''
 jzfs = ''
