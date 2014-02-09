@@ -41,7 +41,7 @@ import netifaces
 ########################################################################################
 
 
-jailconf = '/etc/jail.conf' # jail.conf location by default /etc/jail.conf
+jailconf = 'jail.conf' # jail.conf location by default /etc/jail.conf
 
 # empty vars
 bridge_int = ''
@@ -487,9 +487,8 @@ def jail_create():
             os.system("zfs create %s/%s" % (jzfs, jname))
             bdsinstall_src(jpath+jname) 
 
-#################
+'''
 # Jail zfs quota 
-#
       while True:
          jquota = raw_input("'%s/%s' quota (leave empty for none) M/G:> " % (jzfs, jname))
 
@@ -502,7 +501,7 @@ def jail_create():
             continue
          else:
             break
-
+''' 
 	    
          dt = str(datetime.now())
          newjail = [' ', jname, '{', '# Jail "%s" was modified on %s by ... JADM ...' % (jname, dt), 'host.hostname = %s;' % (jhostname), 'jid = %s;' % (jid), '$jip = "%s";' % (jip), '$jgw = "%s";' % (jgw), '# --- additional config ---', '}']
