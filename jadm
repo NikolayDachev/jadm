@@ -314,6 +314,19 @@ def jadm_postinstall(new_jail_path):
    print "               JADM run postinstall"
    os.system("echo 'sendmail_enable=\"NONE\"' >> %s" % (new_jail_path+"/etc/rc.conf"))
 
+def zfs_quota(jzfs_path, jquota):
+########################################################################################
+# zfs quota set for jail
+#
+      if jquota == 'none':
+         os.system("zfs set quota=%s %s" % (jquota, jzfs_path))
+      else:
+         if os.WEXITSTATUS(os.system("zfs set quota=%s %s" % (jquota, jzfs_path))) != 0:
+            print "            Incorrect zfs quota!"
+         else:
+            return False
+         
+         
 def jail_create():
 ########################################################################################
 # Create new jail 
@@ -439,13 +452,37 @@ def jail_create():
          break
 
    while True:
+      jquota = raw_input('Jail ZFS Quota (M)egabytes, (G)igabytes, (none) for unlimited:> ')
+      
+      if jquota == "!":
+         print "            Interrupted by user - !"
+         return False
+
+      if jquota == "none":
+         break
+
+      try:
+        int(jquota[:-1])
+      except ValueError:
+        print "            Please use numebrs only with (M)egabytes or (G)igabytes indicator at the end!)"
+        continue
+
+      if str(jquota[-1]) not in ['M', 'G']:
+        print "            Please use only (M)egabytes or (G)igabytes indicator at the end!)"
+        continue
+      else:
+        break
+   
+   while True:
       print "...  New Jail will be created ... \n"
       print "Jail Name:        %s" % (jname) 
       print "Jail Hostname:    %s" % (jhostname)
       print "Jail ID:          %s" % (jid)
       print "Jail IP address:  %s" % (jip)
       print "Jail Gateway:     %s" % (jgw)
-      print "Jail ZFS:     %s/%s" % (jzfs, jname)
+      print "Jail ZFS:      %s/%s" % (jzfs, jname)
+      print "%s/%s Quota:      %s" % (jzfs, jname, jquota)
+
       yn = raw_input("... Please confirm (y/n): ")
       if yn in "nN":
          print "            Interrupted by user"
@@ -472,6 +509,7 @@ def jail_create():
                if zfsch == "recreate":
                   os.system("zfs destroy %s/%s" % (jzfs, jname))
                   os.system("zfs create %s/%s" % (jzfs, jname))
+                  zfs_quota(zfstest, jquota)
  
                   bdsinstall_src(jpath+jname)              
 
@@ -485,24 +523,9 @@ def jail_create():
                             
          if zfstest not in zfs:
             os.system("zfs create %s/%s" % (jzfs, jname))
+            zfs_quota(zfstest, jquota)
             bdsinstall_src(jpath+jname) 
 
-'''
-# Jail zfs quota 
-      while True:
-         jquota = raw_input("'%s/%s' quota (leave empty for none) M/G:> " % (jzfs, jname))
-
-         if zfsch == "!":
-            print "            Interrupted by user - !"
-            return False
-
-         if os.WEXITSTATUS(os.system("zfs set quota=%s %s/%s" % (jquota, jzfs, janme))) != 0:
-            print "            Incorrect zfs quota!"
-            continue
-         else:
-            break
-''' 
-	    
          dt = str(datetime.now())
          newjail = [' ', jname, '{', '# Jail "%s" was modified on %s by ... JADM ...' % (jname, dt), 'host.hostname = %s;' % (jhostname), 'jid = %s;' % (jid), '$jip = "%s";' % (jip), '$jgw = "%s";' % (jgw), '# --- additional config ---', '}']
 
@@ -924,6 +947,30 @@ def jail_modify(jnid = ''):
          else:
             break
 
+      while True:
+         print "Old quota: %s" % (jmodify[7])
+         jquota = raw_input('Jail ZFS Quota (M)egabytes, (G)igabytes, (none) for unlimited:> ')
+
+         if jquota == "!":
+            print "            Interrupted by user - !"
+            return False
+
+         if jquota == "none":
+            break
+
+         try:
+            int(jquota[:-1])
+         except ValueError:
+            print "            Please use numebrs only with (M)egabytes or (G)igabytes indicator at the end!)"
+            continue
+
+         if str(jquota[-1]) not in ['M', 'G']:
+            print "            Please use only (M)egabytes or (G)igabytes indicator at the end!)"
+            continue
+         else:
+            break
+
+
    else:
       print "       Jail with name '%s' not found!" % (jnid)
       return False
@@ -960,6 +1007,11 @@ def jail_modify(jnid = ''):
          print "Jail ZFS:             %s/%s" % (jzfs, jname)
       else: 
          print "Jail ZFS:             %s/%s (old: %s/%s )" % (jzfs, jname, jzfs, jmodify[1])
+      
+      if jquota == jmodify[7]:
+         print "%s/%s Quota:      %s" % (jzfs, jname, jquota)
+      else:
+         print "%s/%s Quota(%s):      %s" % (jzfs, jname, jmodify[7], jquota)
 
       yn = raw_input("... Please confirm (y/n): ")
       if yn in "nN":
@@ -971,36 +1023,42 @@ def jail_modify(jnid = ''):
          zfs = zfs.split('\n')
 
          zfstest = jzfs + "/" + jname
-         if zfstest in zfs:
-            print "            WARNING: ZFS %s/%s alredy exist!" % (jzfs, jname)
-            print "            use: If you want you can use it for %s Jail" % (jname)
-            print "            recreate: We can recreate it (ALL EXISTING DATA WILL BE DESTROYED!) and install new jail world inside"
-            print "            ! : Interrupt Jail creation"
 
-            while True:
-               zfsch = raw_input("Enter your choice (use|recreate|!) :> ")
- 
-               if zfsch == "!":
-                  print "            Interrupted by user - !"
-                  return False
+         if jquota != jmodify[7]:
+            zfs_quota(zfstest, jquota)
+
+         if jname != jmodify[1]:
+
+            if zfstest in zfs:
+               print "            WARNING: ZFS %s/%s alredy exist!" % (jzfs, jname)
+               print "            use: If you want you can use it for %s Jail" % (jname)
+               print "            recreate: We can recreate it (ALL EXISTING DATA WILL BE DESTROYED!) and install new jail world inside"
+               print "            ! : Interrupt Jail creation"
+  
+               while True:
+                  zfsch = raw_input("Enter your choice (use|recreate|!) :> ")
+  
+                  if zfsch == "!":
+                     print "            Interrupted by user - !"
+                     return False
         
-               if zfsch == "recreate":
-                  os.system("zfs destroy %s/%s" % (jzfs, jname))
-                  os.system("zfs create %s/%s" % (jzfs, jname))
+                  if zfsch == "recreate":
+                     os.system("zfs destroy %s/%s" % (jzfs, jname))
+                     os.system("zfs create %s/%s" % (jzfs, jname))
+                     zfs_quota(jzfs+"/"+jname, jquota)
+                     bdsinstall_src(jpath+jname)
 
-                  bdsinstall_src(jpath+jname)
+                     print "            Jail %s world was successful recreated for %s%s" % (jname,jpath,jname)
+                     break
 
-                  print "            Jail %s world was successful recreated for %s%s" % (jname,jpath,jname)
-                  break
+                  if zfsch == "use":
+                     print "            Jail %s will use existing world %s%s" % (jname,jpath,jname)
+                     jname = jmodify[1]
+                     break 
 
-               if zfsch == "use":
-                  print "            Jail %s will use existing world %s%s" % (jname,jpath,jname)
-                  jname = jmodify[1]
-                  break 
-
-               if zfsch not in ['use','recreate','!']:
-                  print "            Please enter only 'use','recreate' or'!'"
-                  continue
+                  if zfsch not in ['use','recreate','!']:
+                     print "            Please enter only 'use','recreate' or'!'"
+                     continue
 
          fj = find_jail(jmodify[1])
          jb = fj[0]
@@ -1025,7 +1083,7 @@ def jail_modify(jnid = ''):
          print " "
          print "Jail \'%s\' was modified!" % (jmodify[1])
 
-         jail_start_stop('start', jnid) # start jail after other action
+         jail_start_stop('start', jname) # start jail after other action
 
          return False
 
