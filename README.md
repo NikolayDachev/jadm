@@ -9,8 +9,8 @@ SHORT INSTALL PROCESS:
 
 jadm required packages: 
 
-pkg install python
-pkg install py27-pip-1.4.1
+pkg install python py27-pip-1.4.1
+
 pip install tabulate
 pip install netifaces
 
