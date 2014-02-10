@@ -1218,7 +1218,7 @@ def setup():
 #
    jails = jails_list()
 
-   jail_start_stop('stopall', jnid) # stop ALL jail befor other action
+   jail_start_stop('stop', 'all') # stop ALL jail befor other action
 
 # Read jail.conf file 
    jcs = open(jailconf, 'r')
@@ -1405,7 +1405,7 @@ def setup():
    print tabulate(bz, set_menu)
    print " "
 
-   jail_start_stop('startall', jnid) # start ALL jail befor other action
+   jail_start_stop('start', 'all') # start ALL jail befor other action
 
 def about():
 ########################################################################################
