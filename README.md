@@ -11,16 +11,17 @@ jadm required packages:
 
 pkg install python
 pkg install py27-pip-1.4.1
+
 pip install tabulate
 pip install netifaces
 
-# in rc.conf add at lease one bridge interface
+ in rc.conf add at lease one bridge interface
 cloned_interfaces="bridge1"
 
-# asain bridge ip address ipv4 is used for easy multi ip used for jadm gateways
+ asain bridge ip address ipv4 is used for easy multi ip used for jadm gateways
 ipv4_addrs_bridge1="192.168.1.1/24"
 
-# create at lease one zfs zpool (you can use and existin one)
+ create at lease one zfs zpool (you can use and existin one)
 During the initsetup jadm will check for existing bridge interface and existing zpools
 also it will check for existing /etc/jail.conf and will make a backup (jadm is in development proces please make a backup before start initsetup)
 
