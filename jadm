@@ -474,14 +474,11 @@ def jail_create():
         break
    
    while True:
+      print " "
       print "...  New Jail will be created ... \n"
-      print "Jail Name:        %s" % (jname) 
-      print "Jail Hostname:    %s" % (jhostname)
-      print "Jail ID:          %s" % (jid)
-      print "Jail IP address:  %s" % (jip)
-      print "Jail Gateway:     %s" % (jgw)
-      print "Jail ZFS:      %s/%s" % (jzfs, jname)
-      print "%s/%s Quota:      %s" % (jzfs, jname, jquota)
+      new_jail_menu  = ['New Jail', 'Settings']
+      new_jail_settings = [['Name', jname], ['Hostname', jhostname], ['ID', jid], ['IP address', jip], ['Gateway', jgw], ['ZFS', "%s/%s" % (jzfs, jname)], ['ZFS Quota', jquota]]
+      print tabulate(new_jail_settings, new_jail_menu)
 
       yn = raw_input("... Please confirm (y/n): ")
       if yn in "nN":
@@ -977,42 +974,10 @@ def jail_modify(jnid = ''):
 
    while True:
       print " "
-      print "...  New settings for Jail '%s'' ... \n"  % (jnid)
-      if jname == jmodify[1]:
-         print "Jail Name:            %s" % (jname)
-      else:
-         print "Jail Name:            %s (old: %s )" % (jname, jmodify[1])
-    
-      if jhostname == jmodify[2]:
-         print "Jail Hostname:        %s" % (jhostname)
-      else:
-         print "Jail Hostname:        %s (old: %s )" % (jhostname, jmodify[2])
-    
-      if jid == jmodify[0]:
-         print "Jail ID:              %s" % (jid)
-      else:
-         print "Jail ID:              %s (old: %s )" % (jid, jmodify[0])
-    
-      if jip == jmodify[3]:
-         print "Jail IP address:      %s" % (jip)
-      else:
-         print "Jail IP address:      %s (old: %s )" % (jip, jmodify[3])
-     
-      if jgw == jmodify[4]:
-         print "Jail Gateway:         %s" % (jgw)
-      else:
-         print "Jail gateway:         %s (old: %s )" % (jgw, jmodify[4])
-     
-      if jname == jmodify[1]:
-         print "Jail ZFS:             %s/%s" % (jzfs, jname)
-      else: 
-         print "Jail ZFS:             %s/%s (old: %s/%s )" % (jzfs, jname, jzfs, jmodify[1])
-      
-      if jquota == jmodify[7]:
-         print "%s/%s Quota:      %s" % (jzfs, jname, jquota)
-      else:
-         print "%s/%s Quota(%s):      %s" % (jzfs, jname, jmodify[7], jquota)
-
+      mod_jail_menu  = ['Jail', 'Old Settings', 'New Settings']
+      mod_jail_settings = [['Name', jmodify[1], jname], ['Hostname', jmodify[2], jhostname, ], ['ID', jmodify[0], jid], ['IP address', jmodify[3], jip], ['Gateway', jmodify[4], jgw], ['ZFS', "%s/%s" % (jzfs, jmodify[1]) , "%s/%s" % (jzfs, jname)], ['ZFS Quota', jmodify[7], jquota]]
+      print tabulate(mod_jail_settings, mod_jail_menu)
+      print " "
       yn = raw_input("... Please confirm (y/n): ")
       if yn in "nN":
          print "            Interrupted by user"
@@ -1448,10 +1413,9 @@ def about():
 #
 
    about = ("""
-JADM ver. 0.1
+JADM ver. 0.25
 -------------
-creator:  Nikolay Georgiev Dachev, Bulgaria - Knezha
-contact:  nikolay@dachev.info
+creator:  Nikolay Georgiev Dachev, <nikolay@dachev.info>
 support:  jadm@dachev.info (only for bugs report and jadm issues)
 
        :     please do not expect 24/7 support i will replay only by decion
