@@ -32,12 +32,11 @@ If are not installed:
 - pip install tabulate
 - pip install netifaces
 
-- create FreeBSD bridge interface and assign ip address:
-ifconfig bridge1 create
-ifcofnig bridge1 192.168.1.1/24
+Create FreeBSD bridge interface and assign ip address:
+- ifconfig bridge1 create
+- ifcofnig bridge1 192.168.1.1/24
 
-To be aveilable on boot
-in rc.conf add at lease one bridge interface
+To be aveilable on boot in rc.conf add at lease one bridge interface
 - cloned_interfaces="bridge1"
 
 bridge ip address ipv4 is used for easy multi ip used for jadm gateways
