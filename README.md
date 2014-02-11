@@ -12,7 +12,7 @@ The idea is to provide jail framewaork wich use only FreeBDS native /etc/jail.co
 jamd just pars /etc/jail.conf file also use FreeBSD integradted zfs functunality, bsdinstall 
 for jail creations (also src) and freebsd jail tools
 
-jadm create custom jail.conf file with initinstall function (make backup) in order which can be 
+jadm create custom jail.conf file with initsetup() function (make backup) in order which can be 
 parsed also leave availability for /etc/jail.conf custom config.
 
 jadm use zpool and zfs for jail envoirment also bridge interface for vnet network
@@ -25,6 +25,9 @@ Requirments:
  (you can use multiple ip's which are used for jails gateways for different network)
 
 Quick install start for beta test:
+
+!! Do not test it in production system !!
+If you already use /etc/jail.conf make a copy and delete it , if not exist jadm will create it (!stop all exsiting jails!)
 
 If are not installed:
 - pkg install python
@@ -45,6 +48,9 @@ To be aveilable on boot in rc.conf add at lease one bridge interface
 
 bridge ip address ipv4 is used for easy multi ip used for jadm gateways
 - ipv4_addrs_bridge1="192.168.1.1/24 10.10.10.1/24"
+
+When jadm is started for first time check if /etc/jail.conf exist and execute initsetup()
+When jamd is started check for existing zpool/zfs and bridged interface if they are not available exit with error message
 
 Any 'bug' which is reported to jadm@dachev.info will help me to speed up development process
 
