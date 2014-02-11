@@ -9,12 +9,11 @@ TO DO list: not in order
  - src
  --- test for bugs
  --- postinstall
- - install fromt templates
-4. zfs snapshot restore
-5. template create / modify
-6. fix jail consistens during start / stop / create
-7. jexec shell
-8. def() organizations
-9. migration - ?
-10. jadm python comments
+4. - install fromt templates
+   -- template create / modify
+5. fix jail consistens during start / stop / create
+6. jexec shell
+7. def() organizations
+8. migration - ?
+9. jadm python comments
 
