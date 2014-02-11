@@ -710,7 +710,7 @@ def jail_snapshot_list(jnid = ''):
 
 def jail_snapshot(action, jnid = ''):
 ###########################################################################################
-# This function use action var (listsnap, rmsnap, ceratesnap) with jnid var (name/jail id)
+# This function use action var (listsnap, rmsnap, ceratesnap, restoresnap) with jnid var (name/jail id)
 # to list zfs snapshot for jnid var, 
 # remove snapshot for jnid var 
 # or create zfs snapshot for jnid var
