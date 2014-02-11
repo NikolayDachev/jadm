@@ -35,6 +35,9 @@ If are not installed:
 Create FreeBSD bridge interface and assign ip address:
 - ifconfig bridge1 create
 - ifcofnig bridge1 192.168.1.1/24
+For second jail network gateway
+- ifcofnig bridge1 alias 10.10.10.1/24
+- etc ..
 
 To be aveilable on boot in rc.conf add at lease one bridge interface
 - cloned_interfaces="bridge1"
