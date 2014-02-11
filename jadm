@@ -41,7 +41,7 @@ import netifaces
 ########################################################################################
 
 
-jailconf = '/etc/jail.conf' # jail.conf location by default /etc/jail.conf
+jailconf = 'jail.conf' # jail.conf location by default /etc/jail.conf
 
 # empty vars
 bridge_int = ''
@@ -312,7 +312,11 @@ def jadm_postinstall(new_jail_path):
 
    print " "
    print "               JADM run postinstall"
+   os.system("echo '# Added by JADM' >> %s" % (new_jail_path+"/etc/rc.conf"))
    os.system("echo 'sendmail_enable=\"NONE\"' >> %s" % (new_jail_path+"/etc/rc.conf"))
+   os.system("echo 'firewall_enable=\"YES\"' >> %s" % (new_jail_path+"/etc/rc.conf"))
+   os.system("echo 'firewall_script=\"/etc/rc.firewall\"' >> %s" % (new_jail_path+"/etc/rc.conf"))
+   os.system("echo 'firewall_type=\"OPEN\"' >> %s" % (new_jail_path+"/etc/rc.conf"))
 
 def zfs_quota(jzfs_path, jquota):
 ########################################################################################
@@ -670,6 +674,40 @@ def jail_destroy(action, jnid = ''):
    else:
       print "       Jail with Name '%s' not found!" % (jnid)
 
+def jail_snapshot_list(jnid = ''):
+###########################################################################################
+# jail zfs snapshot list
+#
+   try:
+      jsnap = subprocess.check_output("zfs list -t snapshot |grep "+jnid, shell=True)
+   except:
+      print "       no zfs snapshots find for '%s'" % (jnid)
+      print " "
+      return False
+
+   jsnap = jsnap.split('\n')
+   jsnapn = []
+   for i in jsnap:
+      i = i.split(' ')
+      while True:
+         try:
+            i.remove("")
+         except ValueError:
+            break
+      jsnapn.append(i)
+
+   lmen = ['Number', 'Name', 'Size']
+   del jsnapn[-1]
+   jsn = 0
+   jsnn = []
+   for i in jsnapn:
+      jsnn.append([jsn, i[0], i[3]])
+      jsn = jsn + 1
+
+   return [jsnn, lmen]
+
+
+
 def jail_snapshot(action, jnid = ''):
 ###########################################################################################
 # This function use action var (listsnap, rmsnap, ceratesnap) with jnid var (name/jail id)
@@ -693,82 +731,41 @@ def jail_snapshot(action, jnid = ''):
       else:
          print "       Jail with ID '%s' not found!" % (jnid)
          return False
+
    if jnid in jails[1]:
 
-      if action == "listsnap":
-         print " "
-         print "   ---   Snapshots list for Jail '%s'   ---   " % (jnid)
-         print " "
-    
-         try:
-            jsnap = subprocess.check_output("zfs list -t snapshot |grep "+jnid, shell=True)
-         except:   
-            print "       no zfs snapshots find for '%s'" % (jnid)
-            print " "
-            return False
-
-
-         jsnap = jsnap.split('\n')
-         jsnapn = []
-         for i in jsnap:
-            i = i.split(' ')
-            while True:
-               try:
-                  i.remove("")
-               except ValueError:
-                  break
-            jsnapn.append(i)
-            
-                  
-         lmen = ['Number', 'Name', 'Size']
-         del jsnapn[-1]
-         jsn = 0
-         jsnn = []
-         for i in jsnapn:
-            jsnn.append([jsn, i[0], i[3]])
-            jsn = jsn + 1
-      
-         print tabulate(jsnn, lmen)
-    
       if action == "createsnap":
          dt =  str(datetime.utcnow().isoformat())
          jzfssnap = "%s/%s@%s" % (jzfs, jnid, dt)
          os.system("zfs snapshot "+jzfssnap)
          print "       New snapshot '%s' was created for Jail '%s'!" % (jzfssnap, jnid)
+         return False
+
+      print " "
+      print "   ---   Snapshots list for Jail '%s'   ---   " % (jnid)
+      print " "
+
+      if action == "listsnap":
+         if jail_snapshot_list(jnid) == False:
+            return False
+
+         lmen = jail_snapshot_list(jnid)[1]
+         jsnn = jail_snapshot_list(jnid)[0]
+         print tabulate(jsnn, lmen)
 
       if action == "rmsnap":
-         print " "
-         print "   ---   Snapshots list for Jail '%s'   ---   " % (jnid)
-         print " "
+         if jail_snapshot_list(jnid) == False:
+            return False
 
-         jsnap = subprocess.check_output("zfs list -t snapshot |grep "+jnid, shell=True)
-         jsnap = jsnap.split('\n')
-         jsnapn = []
-         for i in jsnap:
-            i = i.split(' ')
-            while True:
-               try:
-                  i.remove("")
-               except ValueError:
-                  break
-            jsnapn.append(i)
-
- 
-         lmen = ['Number', 'Name', 'Size']
-         del jsnapn[-1]
-         jsn = 0
-         jsnn = []
-         for i in jsnapn:
-            jsnn.append([jsn, i[0], i[3]])
-            jsn = jsn + 1
-
+         lmen = jail_snapshot_list(jnid)[1]
+         jsnn = jail_snapshot_list(jnid)[0]
          print tabulate(jsnn, lmen)
-         print " "
-         
+
+         print " "         
          while True:
             rmsnap = raw_input("       Enter snapshot number or '!' for exit: ")
             if rmsnap == "!":
-               print "            Jail creation was interrupted by user - !"
+               print "            Interrupted by user - !"
                return False
              
             try:
@@ -785,7 +782,7 @@ def jail_snapshot(action, jnid = ''):
                print "            %s snapshot will be removed!" % (jsnn[int(rmsnap)][1])
                yn = raw_input("... Please confirm (y/n): ")
                if yn in "nN":
-                  print "            Interrupted by user"
+                  print "            Interrupted by user - !"
                   return False
          
                if yn in "yY":
@@ -794,6 +791,48 @@ def jail_snapshot(action, jnid = ''):
                   return False 
             else:
                print "            Snapshot number '%s' not exist please choose different number!" % (rmsnap)
+               continue
+
+      if action == "restoresnap":
+         if jail_snapshot_list(jnid) == False:
+            return False
+
+         lmen = jail_snapshot_list(jnid)[1]
+         jsnn = jail_snapshot_list(jnid)[0]
+         print tabulate(jsnn, lmen)   
+         print " "
+      
+         while True:
+            snap = raw_input("       Enter snapshot number or '!' for exit: ")
+            if snap == "!":
+               print "            Interrupted by user - !"
+               return False
+
+            try:
+              int(snap)
+            except ValueError:
+              print "            Please use only numbers for Snapshot number"
+              continue
+      
+            sn = []
+            for i in jsnn:
+              sn.append(i[0])
+   
+            if int(snap) in sn:
+               print "            '%s' will be restored from '%s' snapshot!" % (jnid, jsnn[int(snap)][1])
+               print "             all snapshots newer than '%s' will be removed too!" % (jsnn[int(snap)][1])
+               yn = raw_input("... Please confirm (y/n): ")
+               if yn in "nN":
+                  print "            Interrupted by user - !"
+                  return False
+
+               if yn in "yY":
+                  jail_start_stop('stop', jnid) # stop jail befor other action
+                  os.system("zfs rollback -r %s" % (jsnn[int(snap)][1]))
+                  print "'            '%s' jail was restored from '%s' snapshot!" % (jnid, jsnn[int(snap)][1])
+                  return False
+            else:
+               print "            Snapshot number '%s' not exist please choose different number!" % (snap)
                continue
       
    else:
@@ -1070,6 +1109,7 @@ def help():
    print "       modify -  Modify existing Jail (usage: modify 'jailname or jid')"
    print "       listsnap -  Jail ZFS snapshots list (usage: listsnap 'jailname or jid')"
    print "       createsnap -  Create new Jail ZFS snapshot (usage: createsnap 'jailname or jid')"
+   print "       restoresnap -  Restroe Jail ZFS from snapshot (usage: restoresanp 'jailname or jid')"
    print "       rmsnap -  Remove Jail ZFS snapshot (usage: rmsanp 'jailname or jid')"
 #   print "       migration - Migrate Jail vm between different system via ssh"
    print "       start - Start Jail (usage: start 'jailname, jid or all')"
@@ -1413,7 +1453,7 @@ def about():
 #
 
    about = ("""
-JADM ver. 0.25
+JADM ver. 0.26
 -------------
 creator:  Nikolay Georgiev Dachev, <nikolay@dachev.info>
 support:  jadm@dachev.info (only for bugs report and jadm issues)
@@ -1502,7 +1542,7 @@ def jail_table(mcmd):
 initcheck()
 def_vars()
 
-lcmd = ['initsetup', 'setup', 'exit', 'about', 'help', 'create', 'destroy', 'remove', 'modify', 'listsnap', 'createsnap', 'rmsnap', 'migration', 'start', 'stop', 'list', 'gateways', '!']
+lcmd = ['initsetup', 'setup', 'exit', 'about', 'help', 'create', 'destroy', 'remove', 'modify', 'listsnap', 'createsnap', 'rmsnap', 'restoresnap', 'migration', 'start', 'stop', 'list', 'gateways', '!']
 
 while True:
    cmd = raw_input('jadm:> ').split(' ')
@@ -1580,6 +1620,12 @@ while True:
          print "       Please enter \'help\' for valid commands!"
 
    if mcmd[0] == "rmsnap":
+      if len(mcmd) == 2:
+         jail_snapshot(mcmd[0], mcmd[1])
+      else:
+         print "       Please enter \'help\' for valid commands!"
+
+   if mcmd[0] == "restoresnap":
       if len(mcmd) == 2:
          jail_snapshot(mcmd[0], mcmd[1])
       else:
