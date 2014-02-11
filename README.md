@@ -49,6 +49,11 @@ To be aveilable on boot in rc.conf add at lease one bridge interface
 bridge ip address ipv4 is used for easy multi ip used for jadm gateways
 - ipv4_addrs_bridge1="192.168.1.1/24 10.10.10.1/24"
 
+Add this in /etc/rc.conf if you want to start jails on boot
+- jail_enable="YES"                                                                                                                                                                                                                                                              
+- jail_parallel_start="YES"                                                                                                                                                                                                                                                      
+- jail_list="firstjaisl secondjail "
+
 When jadm is started for first time check if /etc/jail.conf exist and execute initsetup()
 When jamd is started check for existing zpool/zfs and bridged interface if they are not available exit with error message
 
