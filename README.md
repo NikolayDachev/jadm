@@ -37,10 +37,10 @@ pip install netifaces
 :> ifcofnig bridge1 192.168.1.1/24
 
 - to be aveilable on boot
-# in rc.conf add at lease one bridge interface
+-- in rc.conf add at lease one bridge interface
 cloned_interfaces="bridge1"
 
-# bridge ip address ipv4 is used for easy multi ip used for jadm gateways
+-- bridge ip address ipv4 is used for easy multi ip used for jadm gateways
 ipv4_addrs_bridge1="192.168.1.1/24"
 
 Any 'bug' which is reported to jadm@dachev.info will help me to speed up development process
