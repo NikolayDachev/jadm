@@ -3,16 +3,15 @@ JADM
 TO DO list: not in order
 
 1. Make file for jadm (in order to install all required pkg used by jadm)
-3. jail envoirment install (need impruvments)
+2. jail envoirment install (need impruvments)
  - bsdinstall
  - src
  --- test for bugs
  --- postinstall
-4. - install fromt templates
+3. - install fromt templates
    -- template create / modify
-5. fix jail consistens during start / stop / create
-6. jexec shell
-7. def() organizations
-8. migration - ?
-9. jadm python comments
+4. fix jail consistens during start / stop / create
+5. def() organizations
+6. migration - ?
+7. jadm python comments
 
