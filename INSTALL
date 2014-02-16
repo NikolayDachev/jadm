@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# Simple install
+
+# install python
+pkg install python
+
+# install python pip
+pkg install py27-pip
+
+# install python libs needed for jadm
+pip install tabulate
+pip install netifaces
+pip install ipaddress
+
+# install jadm in /usr/local/bin
+cp ./jadm /usr/local/bin
+
