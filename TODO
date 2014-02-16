@@ -3,7 +3,6 @@ JADM
 TO DO list: not in order
 
 1. Make file for jadm (in order to install all required pkg used by jadm)
-2. check gateway ip and ip addres !=
 3. jail envoirment install (need impruvments)
  - bsdinstall
  - src
