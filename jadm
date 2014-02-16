@@ -43,7 +43,7 @@ import netifaces
 ########################################################################################
 
 
-jailconf = 'jail.conf' # jail.conf location by default /etc/jail.conf
+jailconf = '/etc/jail.conf' # jail.conf location by default /etc/jail.conf
 
 # empty vars
 bridge_int = ''
