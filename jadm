@@ -43,7 +43,7 @@ import netifaces
 ########################################################################################
 
 
-jailconf = '/etc/jail.conf' # jail.conf location by default /etc/jail.conf
+jailconf = 'jail.conf' # jail.conf location by default /etc/jail.conf
 
 # empty vars
 bridge_int = ''
@@ -239,7 +239,8 @@ def jails_list():
       gw.append(load_jail_config(jailconf)[i + 6])
       path.append("%s%s" % (jpath, load_jail_config(jailconf)[i]))
 
-   caj = list(subprocess.check_output("jls -h jid", shell=True).strip('jid').replace('\n', ''))
+   caj = subprocess.check_output("jls -h jid", shell=True).strip('jid')
+   caj = caj.split('\n')
    
    for i in jails():
 
@@ -270,10 +271,11 @@ def bdsinstall_src(install_path):
 # - install from /usr/src or build new /usr/src world and install it in jail path
 #
    print " "
-   chlist = ['bsd', 'src', '!']
-   print "         ---   Do you want jail envoirment to be installed"
-   print "               for bdsinstaller select (bsd) for install from  bsd sources /usr/src/ selcet (src)"
-   print "               (src) will take a more time for install ..."
+   chlist = ['bsd', 'src', 'template','!']
+   print "         ---   Jail envoirment will be installed from:"
+   print "               (template) use existing jail like tamplate"
+   print "               (bsd) use bdsinstaller"
+   print "               (src) install from  bsd sources /usr/src/ this will take a more time for install ..."
    print "               ! - for interupt"
 
    while True:
@@ -282,7 +284,7 @@ def bdsinstall_src(install_path):
          print "            Interrupted by user - !"
          return False
       if choise not in chlist:
-         print "                  type only 'bsd', 'src' or '!'"
+         print "                  type only 'template', 'bsd', 'src' or '!'"
       if choise == 'bsd':
          
          os.system("bsdinstall jail %s" % (install_path))
@@ -324,6 +326,44 @@ def bdsinstall_src(install_path):
          print " "
          print "       Jail envoirment was installed via 'source'"
          return False
+
+      if choise == 'template':
+         print " "
+         jail_table('1')
+
+         while True:
+            jtemplate = raw_input("enater jail name:> ")
+         
+            if jtemplate not in jails_list()[1]:
+               print " "
+               print "       Please enter existing Jail name!"
+               continue
+            else:
+               break
+
+         jtemp_file = "jadm_temp_file"
+         tempdir = "/%s" % (jzfs)
+
+         print "       Create temp snapshot '%s/%s@jadm_template'" % (jzfs, jtemplate)
+         os.system('zfs snapshot %s/%s@jadm_template' % (jzfs, jtemplate))
+
+         print "       Create temp file '%s/%s' from '%s/%s@jadm_template'" % (tempdir, jtemp_file, jzfs, jtemplate)
+         os.system('zfs send %s/%s@jadm_template > %s/%s' % (jzfs, jtemplate, tempdir, jtemp_file))
+ 
+         print "       Restor '%s' from '%s/%s'" % (install_path[1:], tempdir, jtemp_file)
+         os.system('zfs receive -F %s < %s/%s' % (install_path[1:], tempdir, jtemp_file))
+ 
+         print "       Remove temp file '%s/%s'" % (tempdir, jtemp_file)
+         os.system('rm -rf %s/%s' % (tempdir, jtemp_file))
+
+         print "       Destroy temp snapshots '%s/%s@jadm_template' and '%s@jadm_template'" % (jzfs, jtemplate, install_path[1:])
+         os.system('zfs destroy %s/%s@jadm_template' % (jzfs, jtemplate))
+         os.system('zfs destroy %s@jadm_template' % (install_path[1:]))
+
+         print " "
+         print "       Jail envoirment was installed via '%s/%s' as template" % (jzfs, jtemplate)
+         return False
+
       
 def jadm_postinstall(new_jail_path):
 ########################################################################################
@@ -1104,6 +1144,7 @@ def help():
    print "       start - Start Jail (usage: start 'jailname, jid or all')"
    print "       stop - Stop new Jail (usage: stop 'jailname, jid or all')"
    print "       list - List Jails on the system (usage: list 'jailname or jid' / only 'list')"
+   print "       shell - Enter in Jail (usage: shell 'jailname, jid or all')"
    print "       gateways - List aveilable Jail gateways on the system"
    print " "    
 
@@ -1459,7 +1500,7 @@ def about():
 #
 
    about = ("""
-JADM ver. 0.3
+JADM ver. 0.5
 -------------
 creator:  Nikolay Georgiev Dachev, <nikolay@dachev.info>
 support:  jadm@dachev.info (only for bugs report and jadm issues)
@@ -1541,6 +1582,32 @@ def jail_table(mcmd):
       lmen = ["ACTIVE", "JID", "NAME", "HOSTNAME", "IP ADDRESS", "GATEWAY", "PATH", "USED/FREE SPACE", "ZFS QUOTA"]
       print tabulate(jails[7], lmen)
 
+
+def jail_shell(jnid = ''):
+########################################################################################
+# enter in jail shell (jexec) using root shell from jail /etc/passwd
+#
+   jails = jails_list()
+   jnid = jid_jname(mcmd[1])
+
+   if jnid == False:
+      return False
+
+   if jnid not in jails[1]:
+      print "       Jail with name '%s' not found!" % (jnid)
+      return False
+   
+   root_sheel = subprocess.check_output("head -n3 /%s/%s/etc/passwd" % (jzfs, jnid) , shell=True).strip('jid')
+   root_sheel = root_sheel.split(':')
+   print " "
+   print "       Enter in '%s' Jail!" % (jnid)
+   print " "
+   os.system ("jexec %s %s" % (jnid, root_sheel[-1]))
+   print " "
+   print "       Exit from '%s' Jail!" % (jnid)
+
+
+
 ########################################################################################
 # MAIN MENU
 ########################################################################################
@@ -1548,7 +1615,7 @@ def jail_table(mcmd):
 initcheck()
 def_vars()
 
-lcmd = ['initsetup', 'setup', 'exit', 'about', 'help', 'create', 'destroy', 'remove', 'modify', 'listsnap', 'createsnap', 'rmsnap', 'restoresnap', 'migration', 'start', 'stop', 'list', 'gateways', '!']
+lcmd = ['initsetup', 'setup', 'exit', 'about', 'help', 'create', 'destroy', 'remove', 'modify', 'listsnap', 'createsnap', 'rmsnap', 'restoresnap', 'migration', 'start', 'stop', 'list', 'gateways', 'shell', '!']
 
 while True:
    cmd = raw_input('jadm:> ').split(' ')
@@ -1597,6 +1664,12 @@ while True:
 
    if mcmd[0] == "about":
       print about()
+
+   if mcmd[0] == "shell":
+      if len(mcmd) == 2:
+         jail_shell(mcmd[1])
+      else:
+         print "       Please enter \'help\' for valid commands!"
 
    if mcmd[0] == "start":
       if len(mcmd) == 2:
