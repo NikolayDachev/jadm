@@ -31,10 +31,12 @@ OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITU
 
 from datetime import datetime
 from tabulate import tabulate 
+from ipaddress import *
 import os
 import sys
 import subprocess
 import netifaces
+
 
 ########################################################################################
 # Main config vars:
@@ -130,16 +132,35 @@ def bridge(gwc = 0, brc = bridge_int):
 
   br_interface = []
   gw_ipaddr = []
+  gw_network = []
   gw_number = 0
   for i in netifaces.ifaddresses(bridge_int)[netifaces.AF_INET]:
      br_interface.append([gw_number, ' ', i['addr'], i['netmask']])
      gw_ipaddr.append(i['addr'])
+     gw_network.append(i['netmask'])
      gw_number = gw_number + 1
   br_interface[0][1] = bridge_int
 
   br_menu = ["Number", "Bridge name", "Gateway IP Address", "Gatewy Network Mask"]
   print tabulate(br_interface, br_menu)
-  return (br_interface, gw_ipaddr)
+  return (br_interface, gw_ipaddr, gw_network)
+
+def bridge_network_check(ip, bridge_ip, bridge_netmask):
+########################################################################################
+# check if ipaddress is in selected bridge network
+#
+
+   ip = unicode(ip)
+   bridge_ip = unicode(bridge_ip)
+   bridge_netmask = unicode(bridge_netmask)
+   brctl = 0
+
+   brdige_network = IPv4Interface('%s/%s' % (bridge_ip, bridge_netmask)).network
+
+   if IPv4Address(ip) in list(IPv4Network(brdige_network)):
+      brctl = 1
+   
+   return brctl, brdige_network 
  
 def load_jail_config(conf_f):
 ########################################################################################
@@ -384,7 +405,7 @@ def jail_create():
       else:
          break
 
-   brin, gwip = bridge()
+   brin, gwip, gwnet = bridge()
    while True:
       jgw = raw_input('Jail Gateway number:> ')
 
@@ -401,60 +422,36 @@ def jail_create():
       if int(jgw) >= len(gwip):
          print "            Slecet valid Gateway number (%s - %s)!" % (0, len(gwip) - 1)
       else:
+         gwnet = gwnet[int(jgw)]
          jgw = gwip[int(jgw)]
          break
 
    while True:
-      while True:
-         ji = raw_input('Jail IP Address:> ')
-         if ji == "!":
-            print "            Interrupted by user - !"
-            return False
-
-         if ch_ipv4(ji) == False:
-            print "            Please enter valid IP address!"
-         else:
-            break
-
-      while True:
-         jne = raw_input('Jail Network Mask in bits:> ')
-         if jne == "!":
-            print "            Interrupted by user - !"
-            return False
-         try:
-            int(jne)
-         except ValueError:
-            print "            Please use only numbers for Jail network bit mask!"
-            continue
-
-         if int(jne) > 32:
-            print "            Please do not use network bit mask bigger than 32 !"
-         else:
-            break
-             
-      jip = str(ji) + "/" + str(jne) 
- 
-      if jip in jails[3]:
-         print "            Jail with IP address '%s' already exist please choose different name!" % (jip)
-      else:
-         break
-         
-      if jgw == "!":
+      ji = raw_input('Jail IP Address:> ')
+      if ji == "!":
          print "            Interrupted by user - !"
          return False
-         
-      try:
-        int(jgw)
-      except ValueError:
-        print "            Slecet valid Gateway number (%s - %s)!" % (0, len(gwip) - 1)
-        continue
 
-      if int(jgw) >= len(gwip):
-         print "            Slecet valid Gateway number (%s - %s)!" % (0, len(gwip) - 1)
+      if ch_ipv4(ji) == False:
+         print "            Please enter valid IP address!"
+         continue
+      
+      bridge_ip_check, brnet = bridge_network_check(ji, jgw, gwnet)
+
+      if int(bridge_ip_check) == 0:
+         print "            %s ip addreess not in %s network" % (ji, brnet)
+         continue
       else:
-         jgw = gwip[int(jgw)]
-         break
+         jip = str(ji) + str(brnet)[-3:]
+         if str(ji) == str(jgw):
+            print "            '%s' is Gateway address please enter different!" % (jip)
+            continue
 
+         if jip in jails[3]:
+            print "            Jail with IP address '%s' already exist please enter different!" % (jip)
+         else:
+            break
+         
    while True:
       jquota = raw_input('Jail ZFS Quota (M)egabytes, (G)igabytes, (none) for unlimited:> ')
       
@@ -485,6 +482,11 @@ def jail_create():
       print tabulate(new_jail_settings, new_jail_menu)
 
       yn = raw_input("... Please confirm (y/n): ")
+
+      if yn == "!":
+         print "            Interrupted by user"
+         return False
+
       if yn in "nN":
          print "            Interrupted by user"
          return False
@@ -913,11 +915,13 @@ def jail_modify(jnid = ''):
          else:
             break
 
-      brin, gwip = bridge()
+      brin, gwip, gwnet = bridge()
       while True:
          jgw = raw_input('Jail IP Gateway (%s):> ' % (jmodify[4]))
          if jgw in ['', ' ', '   ']:
             jgw = jmodify[4]
+            gwnet_index = jmodify[4].index(jmodify[4])
+            gwnet = gwnet[gwnet_index]
             break
 
          if jgw == "!":
@@ -933,56 +937,41 @@ def jail_modify(jnid = ''):
          if int(jgw) >= len(gwip):
            print "            Slecet valid Gateway number (%s - %s)!" % (0, len(gwip) - 1)
          else:
+           gwnet = gwnet[int(jgw)]
            jgw = gwip[int(jgw)]
            break
 
       while True:
-         while True:
-            joldip = jmodify[3][:-3]
+         joldip = jmodify[3][:-3]
  
-            ji = raw_input('Jail IP Address (%s):> ' % (joldip))
-            if ji in ['', ' ', '   ']:
-              ji = joldip
-              break
-            elif ji == "!":
-              print "            Interrupted by user - !"
-              return False
+         ji = raw_input('Jail IP Address (%s):> ' % (joldip))
 
-            if ch_ipv4(ji) == False:
-              print "            Please enter valid IP address!"
-            else:
-              break
-     
-         while True:
-            joldmask = jmodify[3][-2:]
-   
-            jne = raw_input('Jail Network Mask in bits (%s):> ' % (joldmask))
-            if jne in ['', ' ', '   ']:
-               jne = joldmask
-               break
-            elif jne == "!":
-               print "            Interrupted by user - !"
-               return False
-            try:
-               int(jne)
-            except ValueError:
-               print "            Please use only numbers for Jail network bit mask!"
-               continue
+         if ji in ['', ' ', '   ']:
+            ji = joldip
 
-            if int(jne) > 32:
-               print "            Please do not use network bit mask bigger than 32 !"
-            else:
-               break
+         if ji == "!":
+             print "            Interrupted by user - !"
+             return False
 
-         jip = str(ji) + "/" + str(jne)
-         
-         if jip == jmodify[3]:
-            break
-         elif jip in jails[3]:
-            print "            Jail with IP address '%s' already exist please choose different name!" % (jip)
+         elif ch_ipv4(ji) == False:
+             print "            Please enter valid IP address!"
          else:
-            break
-
+               
+            bridge_ip_check, brnet = bridge_network_check(ji, jgw, gwnet)
+            if int(bridge_ip_check) == 0:
+               print "            %s ip addreess not in %s network" % (ji, brnet)
+               continue
+            if int(bridge_ip_check) == 1:
+               jip = str(ji) + str(brnet)[-3:]
+               if str(ji) == str(jgw):
+                  print "            '%s' is Gateway address please enter different!" % (jip)
+                  continue
+               
+               if jip in jails[3]:
+                  print "            Jail with IP address '%s' already exist please enter different!" % (jip)
+               else:
+                  break
+     
       while True:
          print "Old quota: %s" % (jmodify[7])
          jquota = raw_input('Jail ZFS Quota (M)egabytes, (G)igabytes, (none) for unlimited:> ')
@@ -1453,7 +1442,7 @@ def about():
 #
 
    about = ("""
-JADM ver. 0.26
+JADM ver. 0.3
 -------------
 creator:  Nikolay Georgiev Dachev, <nikolay@dachev.info>
 support:  jadm@dachev.info (only for bugs report and jadm issues)
