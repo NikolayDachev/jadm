@@ -8,10 +8,8 @@ TO DO list: not in order
  - src
  --- test for bugs
  --- postinstall
-3. - install fromt templates
-   -- template create / modify
-4. fix jail consistens during start / stop / create
-5. def() organizations
-6. migration - ?
-7. jadm python comments
+3. fix jail consistens during start / stop / create
+4. def() organizations
+5. migration - ?
+6. jadm python comments
 
