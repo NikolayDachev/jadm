@@ -1,6 +1,6 @@
 UNDER DEVELOPMENT
 
-jadm vet. 0.3
+jadm vet. 0.5
 
 TO BE UPDATED
 
@@ -58,6 +58,13 @@ Add this in /etc/rc.conf if you want to start jails on boot
 When jadm is started for first time check if /etc/jail.conf exist and execute initsetup()
 When jamd is started check for existing zpool/zfs and bridged interface if they are not available exit with error message
 
-Any 'bug' which is reported to jadm@dachev.info will help me to speed up development process
+Templates
 
+In ver 0.5 jail was added template usage during jail creation process
+Any existing jail can be used like template during jail install process.
+Zfs envoirment from exsiting jail is copied in new jail, during this process jadm will create tempoary file 
+with original zfs jail content. This file will be created under default jadm zfs folder and after installtion complete  
+will be removed (make sure you have enough space)
+
+Any 'bug' which is reported to jadm@dachev.info will help me to speed up development process
 
