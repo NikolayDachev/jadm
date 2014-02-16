@@ -1,6 +1,6 @@
 UNDER DEVELOPMENT
 
-jadm vet. 0.25
+jadm vet. 0.3
 
 TO BE UPDATED
 
@@ -34,6 +34,7 @@ If are not installed:
 - pkg install py27-pip-1.4.1
 - pip install tabulate
 - pip install netifaces
+- pip install ipaddress
 
 Create FreeBSD bridge interface and assign ip address:
 - ifconfig bridge1 create
