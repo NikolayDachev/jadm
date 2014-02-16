@@ -1163,6 +1163,10 @@ def initsetup():
    yn = raw_input("... Do you want to continue (y/n): ")
    if yn in "nN":
       print "            Interrupted by user"
+
+      check_jailconf = os.path.isfile(jailconf)
+      if check_jailconf == False:
+         sys.exit(0)         
       return False
          
    if yn in "yY":
@@ -1172,6 +1176,10 @@ def initsetup():
          brid = raw_input("       Bridge number:> ")
          if brid == "!":
             print "            Interrupted by user - !"
+            check_jailconf = os.path.isfile(jailconf)
+            if check_jailconf == False:
+               sys.exit(0)
+
             return False
 
          try:
@@ -1194,6 +1202,10 @@ def initsetup():
          jzfs = raw_input("       Enter zpool/tank:> ")
          if jzfs == "!":
             print "            Interrupted by user - !"
+            check_jailconf = os.path.isfile(jailconf)
+            if check_jailconf == False:
+               sys.exit(0)
+
             return False
 
          zfs = subprocess.check_output("zfs list -H -o name", shell=True)
@@ -1215,8 +1227,13 @@ def initsetup():
 
       while True:
          yn = raw_input("... Please confirm JADM settings (y/n): ")
+        
          if yn in "nN":
             print "            Interrupted by user"
+            check_jailconf = os.path.isfile(jailconf)
+            if check_jailconf == False:
+               sys.exit(0)
+
             return False
          
          if yn in "yY":
