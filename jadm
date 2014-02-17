@@ -43,7 +43,7 @@ import netifaces
 ########################################################################################
 
 
-jailconf = '/etc/jail.conf' # jail.conf location by default /etc/jail.conf
+jailconf = 'jail.conf' # jail.conf location by default /etc/jail.conf
 
 # empty vars
 bridge_int = ''
@@ -570,7 +570,7 @@ def jail_create():
             bdsinstall_src(jpath+jname) 
 
          dt = str(datetime.now())
-         newjail = [' ', jname, '{', '# Jail "%s" was modified on %s by ... JADM ...' % (jname, dt), 'host.hostname = %s;' % (jhostname), 'jid = %s;' % (jid), '$jip = "%s";' % (jip), '$jgw = "%s";' % (jgw), '# --- additional config ---', '}']
+         newjail = [' \n', jname, '{', '# Jail "%s" was modified on %s by ... JADM ...' % (jname, dt), 'host.hostname = %s;' % (jhostname), 'jid = %s;' % (jid), '$jip = "%s";' % (jip), '$jgw = "%s";' % (jgw), '# --- additional config ---', '}']
 
          jc = open(jailconf, 'a')
          jc.write('\n'.join(newjail)) 
@@ -1007,6 +1007,9 @@ def jail_modify(jnid = ''):
                   print "            '%s' is Gateway address please enter different!" % (jip)
                   continue
                
+               if ji == joldip:
+                  break
+
                if jip in jails[3]:
                   print "            Jail with IP address '%s' already exist please enter different!" % (jip)
                else:
@@ -1097,21 +1100,21 @@ def jail_modify(jnid = ''):
          jb = fj[0]
          je = fj[1]
          jcl = fj[2]
-                
+
+         dt = str(datetime.now())                
          jc = open(jailconf, 'w')
-         del jcl[jb:je]
+         jcl[jb] = jname
+         jcl[jb+2] = '# Jail "%s" was modified on %s by ... JADM ...' % (jname, dt)
+         jcl[jb+3] = 'host.hostname = %s;' % (jhostname)
+         jcl[jb+4] = 'jid = %s;' % (jid)
+         jcl[jb+5] = '$jip = "%s";' % (jip)
+         jcl[jb+6] = '$jgw = "%s";' % (jgw)
+
          jc.write('\n'.join(jcl))
          jc.close()
 
          if jname != jmodify[1]:
             os.system("zfs rename %s/%s %s/%s" % (jzfs, jmodify[1], jzfs, jname))
-            
-         dt = str(datetime.now())
-         newjail = [' ', jname, '{', '# Jail "%s" was modified on %s by ... JADM ...' % (jname, dt), 'host.hostname = %s;' % (jhostname), 'jid = %s;' % (jid), '$jip = "%s";' % (jip), '$jgw = "%s";' % (jgw), '# --- additional config ---', '}']
-
-         jc = open(jailconf, 'a')
-         jc.write('\n'.join(newjail))
-         jc.close()
 
          print " "
          print "Jail \'%s\' was modified!" % (jmodify[1])
@@ -1500,7 +1503,7 @@ def about():
 #
 
    about = ("""
-JADM ver. 0.5
+JADM ver. 0.6
 -------------
 creator:  Nikolay Georgiev Dachev, <nikolay@dachev.info>
 support:  jadm@dachev.info (only for bugs report and jadm issues)
