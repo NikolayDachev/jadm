@@ -1525,7 +1525,7 @@ def about():
 #
 
    about = ("""
-JADM ver. 0.55
+JADM ver. 0.61
 -------------
 creator:  Nikolay Georgiev Dachev, <nikolay@dachev.info>
 support:  jadm@dachev.info (only for bugs report and jadm issues)
