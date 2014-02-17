@@ -1,6 +1,6 @@
 UNDER DEVELOPMENT
 
-jadm vet. 0.5
+jadm vet. 0.6
 
 TO BE UPDATED
 
@@ -65,6 +65,15 @@ Any existing jail can be used like template during jail install process.
 Zfs envoirment from exsiting jail is copied in new jail, during this process jadm will create tempoary file 
 with original zfs jail content. This file will be created under default jadm zfs folder and after installtion complete  
 will be removed (make sure you have enough space)
+
+Changes
+
+ver: 0.6
+- a lot of issues with modify function was fixed
+
+var: 0.5 
+- existing jail can be used as template during jail creation
+-- still in process of development
 
 Any 'bug' which is reported to jadm@dachev.info will help me to speed up development process
 
