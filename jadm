@@ -294,8 +294,9 @@ def bdsinstall_src(install_path):
 
          print " "
          print "       Jail envoirment was installed via 'bsdinstaller'"
-         return False
- 
+         return temp_add_cfg
+
+  
       if choise == 'src':
 
          src_chlist = ['build', 'install']
