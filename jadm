@@ -278,6 +278,8 @@ def bdsinstall_src(install_path):
    print "               (src) install from  bsd sources /usr/src/ this will take a more time for install ..."
    print "               ! - for interupt"
 
+   temp_add_cfg = []
+
    while True:
       choise = raw_input("install source:>")
       if choise == '!':
@@ -312,6 +314,7 @@ def bdsinstall_src(install_path):
                os.system("cd /usr/src && make installworld DESTDIR=%s%s" % (install_path))
                os.system("cd /usr/src && make distribution DESTDIR=%s%s" % (install_path))
                jadm_postinstall(install_path)
+               return temp_add_cfg
 
 
             if src_choise == "build":
@@ -319,6 +322,7 @@ def bdsinstall_src(install_path):
                os.system("cd /usr/src && make installworld DESTDIR=%s%s" % (install_path))
                os.system("cd /usr/src && make distribution DESTDIR=%s%s" % (install_path))
                jadm_postinstall(install_path)
+               return temp_add_cfg
 
             print "            Interrupted by user - !"
             return False
@@ -359,6 +363,21 @@ def bdsinstall_src(install_path):
          print "       Destroy temp snapshots '%s/%s@jadm_template' and '%s@jadm_template'" % (jzfs, jtemplate, install_path[1:])
          os.system('zfs destroy %s/%s@jadm_template' % (jzfs, jtemplate))
          os.system('zfs destroy %s@jadm_template' % (install_path[1:]))
+
+         print "       Copy '--- additional config ---' from template jail '%s'" % (jtemplate)
+
+         fj = find_jail(jtemplate)
+         jb = fj[0]
+         je = fj[1]
+         jcl = fj[2]
+         
+         jc = open(jailconf, 'r')
+
+         for i in jcl[jb+8:je-1]:
+             temp_add_cfg.append(i)
+         jc.close()
+         
+         return temp_add_cfg
 
          print " "
          print "       Jail envoirment was installed via '%s/%s' as template" % (jzfs, jtemplate)
@@ -554,7 +573,8 @@ def jail_create():
                   os.system("zfs create %s/%s" % (jzfs, jname))
                   zfs_quota(zfstest, jquota)
  
-                  bdsinstall_src(jpath+jname)              
+                  temp_add_cfg = bdsinstall_src(jpath+jname)
+                  break
 
                if zfsch == "use":
                   print "            Jail %s will use existing world %s%s" % (jname,jpath,jname)
@@ -567,10 +587,12 @@ def jail_create():
          if zfstest not in zfs:
             os.system("zfs create %s/%s" % (jzfs, jname))
             zfs_quota(zfstest, jquota)
-            bdsinstall_src(jpath+jname) 
+            temp_add_cfg = bdsinstall_src(jpath+jname) 
 
          dt = str(datetime.now())
          newjail = [' \n', jname, '{', '# Jail "%s" was modified on %s by ... JADM ...' % (jname, dt), 'host.hostname = %s;' % (jhostname), 'jid = %s;' % (jid), '$jip = "%s";' % (jip), '$jgw = "%s";' % (jgw), '# --- additional config ---', '}']
+         for i in temp_add_cfg:
+            newjail.insert(-1, i)
 
          jc = open(jailconf, 'a')
          jc.write('\n'.join(newjail)) 
@@ -1503,7 +1525,7 @@ def about():
 #
 
    about = ("""
-JADM ver. 0.6
+JADM ver. 0.55
 -------------
 creator:  Nikolay Georgiev Dachev, <nikolay@dachev.info>
 support:  jadm@dachev.info (only for bugs report and jadm issues)
