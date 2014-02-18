@@ -1486,6 +1486,7 @@ def setup():
             if "$jedir" in i:
                update_jcs = jcs_list.index(i)
                jcs_list[update_jcs] = '$jedir = "/%s/";\n' % (chjzfs)
+               break
          break
 
       elif choise == '!':
@@ -1526,7 +1527,7 @@ def about():
 #
 
    about = ("""
-JADM ver. 0.61
+JADM ver. 0.62
 -------------
 creator:  Nikolay Georgiev Dachev, <nikolay@dachev.info>
 support:  jadm@dachev.info (only for bugs report and jadm issues)
