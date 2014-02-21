@@ -43,7 +43,7 @@ import netifaces
 ########################################################################################
 
 
-jailconf = '/etc/jail.conf' # jail.conf location by default /etc/jail.conf
+jailconf = 'jail.conf' # jail.conf location by default /etc/jail.conf
 
 # empty vars
 bridge_int = ''
@@ -312,16 +312,16 @@ def bdsinstall_src(install_path):
             src_choise = raw_input("build/install :>")
 
             if src_choise == "install":
-               os.system("cd /usr/src && make installworld DESTDIR=%s%s" % (install_path))
-               os.system("cd /usr/src && make distribution DESTDIR=%s%s" % (install_path))
+               os.system("cd /usr/src && make installworld DESTDIR=%s" % (install_path))
+               os.system("cd /usr/src && make distribution DESTDIR=%s" % (install_path))
                jadm_postinstall(install_path)
                return temp_add_cfg
 
 
             if src_choise == "build":
                os.system("cd /usr/src && make buildworld")
-               os.system("cd /usr/src && make installworld DESTDIR=%s%s" % (install_path))
-               os.system("cd /usr/src && make distribution DESTDIR=%s%s" % (install_path))
+               os.system("cd /usr/src && make installworld DESTDIR=%s" % (install_path))
+               os.system("cd /usr/src && make distribution DESTDIR=%s" % (install_path))
                jadm_postinstall(install_path)
                return temp_add_cfg
 
@@ -1406,6 +1406,8 @@ def setup():
                if "$bridge" in i:
                   update_jcs = jcs_list.index(i)
                   jcs_list[update_jcs] = '$bridge = "%s";\n' % (brid)
+                  print " "
+                  print "          WARNING please modify all jails for new '%s' networks!"  % (brid)
                   break
 
             break
@@ -1527,7 +1529,7 @@ def about():
 #
 
    about = ("""
-JADM ver. 0.62
+JADM ver. 0.65
 -------------
 creator:  Nikolay Georgiev Dachev, <nikolay@dachev.info>
 support:  jadm@dachev.info (only for bugs report and jadm issues)
