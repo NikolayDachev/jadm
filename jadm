@@ -221,7 +221,7 @@ def jails_list():
 # jailscfg[] - each jail full config (all other elements per jail) 
 #
    mas = load_jail_config(jailconf)
-
+ 
    active = []
    name = []
    jid = []
@@ -232,35 +232,44 @@ def jails_list():
    jailscfg = []
 
    for i in jails():
-      name.append(load_jail_config(jailconf)[i])
-      hostname.append(load_jail_config(jailconf)[i + 3])
-      jid.append(load_jail_config(jailconf)[i + 4])
-      ip.append(load_jail_config(jailconf)[i + 5])
-      gw.append(load_jail_config(jailconf)[i + 6])
-      path.append("%s%s" % (jpath, load_jail_config(jailconf)[i]))
+      name.append(mas[i])
+      hostname.append(mas[i + 3])
+      jid.append(mas[i + 4])
+      ip.append(mas[i + 5])
+      gw.append(mas[i + 6])
+      path.append("%s%s" % (jpath,mas[i]))
 
    caj = subprocess.check_output("jls -h jid", shell=True).strip('jid')
    caj = caj.split('\n')
    
    for i in jails():
 
-      if load_jail_config(jailconf)[i + 4] in caj:
+      if mas[i + 4] in caj:
          act = 1
          active.append('1')
       else:
          act = 0
          active.append('1')
 
-# check jail zfs quota      
-      jzfspath = jzfs+"/"+load_jail_config(jailconf)[i]
+# check jail snapshot number
+      zfs_snap = 0
+      cmd = "zfs list -t snapshot |grep %s" %  (mas[i])
+      try:
+            for x in subprocess.check_output(cmd, shell=True).split('\n'):
+               zfs_snap = zfs_snap + 1
+            zfs_snap = zfs_snap - 1
+      except subprocess.CalledProcessError as e:
+            zfs_snap = 0
+       
+ # check jail zfs quota      
+      jzfspath = jzfs+"/"+mas[i]
       zfs_quotacheck = subprocess.check_output("zfs get -H quota %s" % (jzfspath), shell=True).replace('\n', ' ').replace('\t', ' ').split(' ')[2]
 
 # check jail zfs use/aveilable
       zfs_use_aveilable = subprocess.check_output("zfs list -H  %s" % (jzfspath), shell=True).replace('\n', ' ').replace('\t', ' ').split(' ')
       zfs_use_aveilable = zfs_use_aveilable[1]+"/"+zfs_use_aveilable[2]
 
-
-      jailscfg.append([act, load_jail_config(jailconf)[i + 4], load_jail_config(jailconf)[i], load_jail_config(jailconf)[i + 3], load_jail_config(jailconf)[i + 5], load_jail_config(jailconf)[i + 6], "%s%s" % (jpath, load_jail_config(jailconf)[i]), zfs_use_aveilable, zfs_quotacheck])
+      jailscfg.append([act, mas[i + 4], mas[i], mas[i + 3],mas[i + 5],mas[i + 6], "%s%s" % (jpath, mas[i]), zfs_use_aveilable, zfs_quotacheck,  zfs_snap])
 
    return  (active, name, jid, ip, gw, hostname, path, jailscfg)
 
@@ -1529,7 +1538,7 @@ def about():
 #
 
    about = ("""
-JADM ver. 0.65
+JADM ver. 0.67
 -------------
 creator:  Nikolay Georgiev Dachev, <nikolay@dachev.info>
 support:  jadm@dachev.info (only for bugs report and jadm issues)
@@ -1542,7 +1551,7 @@ Jadm is FreeBSD 9/10 jail administration framework with jail.conf, vnet and zfs 
 
 ---------------- JADM is BSD 3-Clause Licensed ---------------------
 
-Copyright (c) <2014>, <Nikolay Georgiev Dachev, Bulgaria - Knezha>
+Copyright (c) <2014>, <Nikolay Georgiev Dachev> <nikolay@dachev.info>
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -1601,14 +1610,14 @@ def jail_table(mcmd):
          for i in jails[7]:
             if i[2] == jnid: 
                one_jail.append(i)
-         lmen = ["ACTIVE", "JID", "NAME", "HOSTNAME", "IP ADDRESS", "GATEWAY", "PATH", "USED/FREE SPACE", "ZFS QUOTA"]
+         lmen = ["ACTIVE", "JID", "NAME", "HOSTNAME", "IP ADDRESS", "GATEWAY", "PATH", "USED/FREE SPACE", "ZFS QUOTA",  "SNAPHOST"]
          print tabulate(one_jail, lmen)
       else:
          print "       Jail with name '%s' not found!" % (jnid)
          return False
 
    if len(mcmd) == 1:
-      lmen = ["ACTIVE", "JID", "NAME", "HOSTNAME", "IP ADDRESS", "GATEWAY", "PATH", "USED/FREE SPACE", "ZFS QUOTA"]
+      lmen = ["ACTIVE", "JID", "NAME", "HOSTNAME", "IP ADDRESS", "GATEWAY", "PATH", "USED/FREE SPACE", "ZFS QUOTA",  "SNAPSHOTS"]
       print tabulate(jails[7], lmen)
 
 
