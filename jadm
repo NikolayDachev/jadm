@@ -56,12 +56,14 @@ jpath = ''
 
 
 def initcheck():
+   """
 ########################################################################################
 # This function make initial check when jadm is started for:
 #  - /etc/jail.conf - exist if not exist start initsetup()
 #  - if bridge interface taken from /etc/jail.conf exist in system / on fail jadm exit 
 #  - if jails zfs path taken from /etc/jail.conf exist in system / on fail jadm exit
 #
+   """
    check_jailconf = os.path.isfile(jailconf)
    if check_jailconf == False:
       print "      '/etc/jail.conf not exist initsetup will be started...' "
@@ -70,10 +72,12 @@ def initcheck():
       return False
 
 def def_vars():
+   """
 ########################################################################################
 # load default vars fomr /etc/jail.conf file 
 # (jzfs, jpath) and default bridge int
 #
+   """
    global jzfs, jpath, bridge_int
 
    jc = open(jailconf, 'r')
@@ -113,10 +117,12 @@ def def_vars():
       sys.exit(0)
 
 def ch_ipv4(sp):
+    """
 ########################################################################################
 # This function check if ip address fromat sp var is correct 
 # numbers of octet should be 4, each octet separated by '.' should be less than 256
 #
+    """
     octet = sp.split('.')
     if len(octet) != 4:
        return False
@@ -126,10 +132,11 @@ def ch_ipv4(sp):
        return False
 
 def bridge(gwc = 0, brc = bridge_int):
+  """
 ########################################################################################
 # find and display in table format existing bridge interfacess in system
 #
-
+  """
   br_interface = []
   gw_ipaddr = []
   gw_network = []
@@ -146,9 +153,11 @@ def bridge(gwc = 0, brc = bridge_int):
   return (br_interface, gw_ipaddr, gw_network)
 
 def bridge_network_check(ip, bridge_ip, bridge_netmask):
+   """
 ########################################################################################
 # check if ipaddress is in selected bridge network
 #
+   """
 
    ip = unicode(ip)
    bridge_ip = unicode(bridge_ip)
@@ -163,10 +172,12 @@ def bridge_network_check(ip, bridge_ip, bridge_netmask):
    return brctl, brdige_network 
  
 def load_jail_config(conf_f):
+   """
 ########################################################################################
 #load_jail_config - load default jail conf file and return it in list.
 #remove all junk only needed values are taken.
 #
+   """
    jc = open(conf_f, 'r')
 
    mas = []
@@ -177,9 +188,11 @@ def load_jail_config(conf_f):
    return mas
 
 def jails():
+   """
 ########################################################################################
 # Return only jails names, they are used for search point in load_jail_config() and etc
 #
+   """
 
    jsname = []
    for i, x in enumerate(load_jail_config(jailconf)): # enumerate in order to avoid wrong index for similiar items like { 
@@ -188,9 +201,11 @@ def jails():
    return jsname
 
 def find_jail(jname):
+   """
 ####################################################################################################
 # Find jails by name (list index in jailconf) return index of jails config start and end (name { })
 #
+   """
    jc = open(jailconf, 'r')
    jcl = []
    for i in jc:
@@ -209,6 +224,7 @@ def find_jail(jname):
    return jb, je, jcl
     
 def jails_list():
+   """
 ########################################################################################
 # Return list of jails by order:
 # active[] - 1 for started jail, 0 for not running 
@@ -220,6 +236,7 @@ def jails_list():
 # path[] - zfs path for each jail
 # jailscfg[] - each jail full config (all other elements per jail) 
 #
+   """
    mas = load_jail_config(jailconf)
  
    active = []
@@ -274,11 +291,13 @@ def jails_list():
    return  (active, name, jid, ip, gw, hostname, path, jailscfg)
 
 def bdsinstall_src(install_path):
+   """
 ########################################################################################
 # Install jail bsd envoirment in jail path
 # - bsdinstall jail $path
 # - install from /usr/src or build new /usr/src world and install it in jail path
 #
+   """
    print " "
    chlist = ['bsd', 'src', 'template','!']
    print "         ---   Jail envoirment will be installed from:"
@@ -395,10 +414,12 @@ def bdsinstall_src(install_path):
 
       
 def jadm_postinstall(new_jail_path):
+   """
 ########################################################################################
 # customize jails after installation finish
 # do it after bdsinstall_src(install_path) finish
 #
+   """
 
    print " "
    print "               JADM run postinstall"
@@ -409,9 +430,11 @@ def jadm_postinstall(new_jail_path):
    os.system("echo 'firewall_type=\"OPEN\"' >> %s" % (new_jail_path+"/etc/rc.conf"))
 
 def zfs_quota(jzfs_path, jquota):
+      """
 ########################################################################################
 # zfs quota set for jail
 #
+      """
       if jquota == 'none':
          os.system("zfs set quota=%s %s" % (jquota, jzfs_path))
       else:
@@ -422,12 +445,14 @@ def zfs_quota(jzfs_path, jquota):
          
          
 def jail_create():
+   """
 ########################################################################################
 # Create new jail 
 # add it to /etc/jail.conf
 # use bsdinstall_src() 
 # add zfs quota if is needed 
 #
+   """
    jails = jails_list()
    print "            You can use ! symbol to interrupt Jail creation in each step"
    
@@ -588,6 +613,7 @@ def jail_create():
 
                if zfsch == "use":
                   print "            Jail %s will use existing world %s%s" % (jname,jpath,jname)
+                  temp_add_cfg = []
                   break 
 
                if zfsch not in ['use','recreate','!']:
@@ -616,9 +642,11 @@ def jail_create():
          continue
 
 def jail_start_stop(action, jnid = ''):
+   """
 ########################################################################################
 # Start or Stop action var jndid var jail or all jails
 #
+   """
    jails = jails_list()
 
    if jnid == "all":
@@ -686,11 +714,13 @@ def jail_start_stop(action, jnid = ''):
       print "       Jail with Name '%s' not found!" % (jnid)
 
 def jail_destroy(action, jnid = ''):
+   """
 ##############################################################################
 # This function use action var (remove/destroy) with jnid var (name/jail id)
 # to destroy (remove jail from jail.conf also remove zfs) 
 # or remove it (only remove jail from jail.conf)
 #
+   """
 
    jails = jails_list()
       
@@ -749,9 +779,11 @@ def jail_destroy(action, jnid = ''):
       print "       Jail with Name '%s' not found!" % (jnid)
 
 def jail_snapshot_list(jnid = ''):
+   """
 ###########################################################################################
 # jail zfs snapshot list
 #
+   """
    try:
       jsnap = subprocess.check_output("zfs list -t snapshot |grep "+jnid, shell=True)
    except:
@@ -783,12 +815,14 @@ def jail_snapshot_list(jnid = ''):
 
 
 def jail_snapshot(action, jnid = ''):
+   """
 ###########################################################################################
 # This function use action var (listsnap, rmsnap, ceratesnap, restoresnap) with jnid var (name/jail id)
 # to list zfs snapshot for jnid var, 
 # remove snapshot for jnid var 
 # or create zfs snapshot for jnid var
 #
+   """
 
    jails = jails_list()
 
@@ -914,9 +948,11 @@ def jail_snapshot(action, jnid = ''):
       return False
 
 def jail_modify(jnid = ''):
+   """
 ########################################################################################
 # modify existing jail in /etc/jail.conf and zfs envoirment if is needed
 # 
+   """
    jails = jails_list()
 
    try:
@@ -1156,9 +1192,11 @@ def jail_modify(jnid = ''):
          return False
 
 def help():
+   """
 ########################################################################################
 # show help how to use jadm
 #
+   """
    print " "
    print "       initsetup - Initial JADM setup"
    print "       setup - Modify JADM setup"
@@ -1184,6 +1222,7 @@ def help():
    print " "    
 
 def initsetup():
+   """
 ########################################################################################
 # initial setup if jadm is started for first time
 # - check for FreeBSD kernel modules
@@ -1192,6 +1231,7 @@ def initsetup():
 # - create /etc/jail.conf (if exist make copy)
 # - create main jadm zfs (all jadm jails will use it like e root zfs)
 #
+   """
    print " "
    print "   --- JADM Initial Setup ---"
    print " "
@@ -1333,11 +1373,13 @@ def initsetup():
             return False
 
 def setup():
+   """
 ########################################################################################
 # modify bridge interface in /etc/jail.conf
 # modify zfs in /etc/jail.conf
 # if zfs is modify rename all exsiting jails zfs under new jadm zfs
 #
+   """
    jails = jails_list()
 
    jail_start_stop('stop', 'all') # stop ALL jail befor other action
@@ -1533,9 +1575,11 @@ def setup():
    jail_start_stop('start', 'all') # start ALL jail befor other action
 
 def about():
+   """
 ########################################################################################
 # Shouw creator information also jadm license
 #
+   """
 
    about = ("""
 JADM ver. 0.67
@@ -1572,11 +1616,13 @@ OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITU
    return about
 
 def jid_jname(jnid):
+   """
 ########################################################################################
 # check if jail was selceted by JID or JAIL NAME
 # if is found or not 
 # always retund JAIL NAME
 #
+   """
    jails = jails_list()
    try:
       int(jnid) == True
@@ -1595,10 +1641,12 @@ def jid_jname(jnid):
    return jnid 
 
 def jail_table(mcmd):
+   """
 ########################################################################################
 # show all jails settings in tbale format 
 # show individual jail settings in table format
 #
+   """
    jails = jails_list()
    
    if len(mcmd) == 2:
@@ -1622,9 +1670,11 @@ def jail_table(mcmd):
 
 
 def jail_shell(jnid = ''):
+   """
 ########################################################################################
 # enter in jail shell (jexec) using root shell from jail /etc/passwd
 #
+   """
    jails = jails_list()
    jnid = jid_jname(mcmd[1])
 
