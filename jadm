@@ -1612,9 +1612,9 @@ JADM %s
 creator:  Nikolay Georgiev Dachev, <nikolay@dachev.info>
 support:  jadm@dachev.info (only for bugs report and jadm issues)
 
-       :     please do not expect 24/7 support i will replay only by decion
-       :     at the moment 'jadm' is in development, 
-       :     aftert firts stable version i will provide mail list if is needed
+please do not expect 24/7 support i will replay only by decision
+at the moment 'jadm' is in development,
+after first stable version i will provide mail list if is needed
 
 Jadm is FreeBSD 10 jail administration framework with jail.conf, vnet and zfs support.
 
