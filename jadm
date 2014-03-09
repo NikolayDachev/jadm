@@ -42,7 +42,7 @@ import netifaces
 # Main config vars:
 ########################################################################################
 
-jadm_version = "ver. 0.68"
+jadm_version = "ver. 0.69"
 jailconf = '/etc/jail.conf' # jail.conf location by default /etc/jail.conf
 
 # empty vars
