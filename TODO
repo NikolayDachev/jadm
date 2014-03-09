@@ -8,10 +8,10 @@ TO DO list: not in order
  - src
  --- test for bugs
  --- postinstall
-3. fix jail consistens during start / stop / create
+3. check for "dying" jail start/stop
 4. def() organizations
 5. migration - ?
 6. jadm python comments
-7. global additional config modify
+7. global options config modify
 ...
 99. interactive jadm comand shell (pygame will be included)
