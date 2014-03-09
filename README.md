@@ -146,7 +146,7 @@ Select snapshot number from list which should be restored
 local is used to modify ### jail local options ### section in /etc/jail.conf
   - List Jail local options   (usage: local list 'name/jid' )
   - Remove Jail local options (usage: local rm 'name/jid' )
-  Jadm shoe jail local options in list you can select which option will be removed by number
+  Jadm show jail local options in list you can select which option will be removed by number
   - Add Jail local option     (usage: local add 'name/jid' 'option=val;')
   Add new jail local optin, please use this format (option = value;) or freebsd jail will not accept it
   You can check (sysctl -a |grep jail) for aveilable jail options (remove security.jail. and security.jail.param.)
