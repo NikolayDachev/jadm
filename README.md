@@ -70,9 +70,9 @@ Show jadm version and license information
 - exit or '!' - exit from JADM
 Exit from jadm
 
-- create - Create new Jail 
+- create - Create new Jail
 Easy interactive way to create new jail:
-Jail Name:>  this name will be used also for jail zfs 
+Jail Name:>  this name will be used also for jail zfs
 Jail Hostname:> jail hostname example: jail.local.lan
 Jail ID:> jail ID also will be used also for jail epair inteface number (vnet / bridge interface conection)
 Jail Gateway number:>  show brige interfaces asignet ip addresses which are used for jail default gatway and jail network just select a number
@@ -81,11 +81,12 @@ Jail ZFS Quota (M)egabytes, (G)igabytes, (none) for unlimited:> enter zfs quota 
 
 After all required data is entered jadm will show summarise config and will ask for confirmation (y/n)
 In this stage jadm will create zfs path for your jail if this zfs path already exist jadm will ask who to proceed
+
 (recreate) - will destroy zfs path and existing data and will create new one with same name 
 (use) - will use existing zfs path (jail environment) and will complete installation
 
 install source:> 
-(template) - jadm will use existing jail like a template and will ask for jail name (only name work) 
+(template) - jadm will use existing jail like a template and will ask for jail name (only name work)
 
 Any existing jail can be used like template during install process.
 ZFS environment from existing jail will be copied in new jail, during this process jadm will create temporary file "jadm_temp_file" with original zfs content.
@@ -93,7 +94,7 @@ This file will be created under default jadm zfs folder and after installtion co
 (The process is not realy fast but avoid zfs snapshot hierarchy)
 Also jadm will copy ### jail local options ### section from template jail to new one
 
-(bsd) - jadm use bdsinstaller which is similiar to new freebsd instalation 
+(bsd) - jadm use bdsinstaller which is similiar to new freebsd instalation
 During this process bsdinstaller will use internet to donwload FreeBSD pkg's
 
 (src) - jadm will try to build jail environment from sources /usr/src, it will ask to make new buildworld or to use already existing builded sources
@@ -127,11 +128,29 @@ Select snapshot number from list which should be restored
 !!! If jail zfs will be restored from older snapshot all newer snapshots will be destroyed !!!
 
 - rmsnap -  Remove Jail ZFS snapshot (usage: rmsanp 'jailname or jid')
-- start - Start Jail (usage: start 'jailname, jid or all')
--  stop - Stop new Jail (usage: stop 'jailname, jid or all')
 
-- list - List Jails on the system (usage: list 'jailname or jid' / only 'list')
-list jail name/jid will show selected jail configuration
+- start - Start Jail (usage: start 'jailname, jid or all')
+  - if jail name content "tmeplate" jadm will skip it when "start all" is used
+
+- stop - Stop new Jail (usage: stop 'jailname, jid or all')
+
+- list - List Jails on the system
+  - List Jail by name  (usage: list 'name/jid' )
+  - List Jail by hostname  (usage: list hostname 'jail hostname' )
+  - List Jail by ipaddress (usage: list ip 'ipaddress/netmask')
+  - List Jails by gateway  (usage: list gw 'gateway ip')
+  - List Actvie Jails      (usage: list active)
+  - List Inactive Jails    (usage: list inactive)
+  
+- local - Jails local options
+local is used to modify ### jail local options ### section in /etc/jail.conf
+  - List Jail local options   (usage: local list 'name/jid' )
+  - Remove Jail local options (usage: local rm 'name/jid' )
+  Jadm show jail local options in list you can select which option will be removed by number
+  - Add Jail local option     (usage: local add 'name/jid' 'option=val;')
+  Add new jail local optin, please use this format (option = value;) or freebsd jail will not accept it
+  You can check (sysctl -a |grep jail) for aveilable jail options (remove security.jail. and security.jail.param.)
 
 - shell - Enter in Jail (usage: shell 'jailname, jid or all')
+
 - gateways - List available Jail gateways on the system
