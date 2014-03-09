@@ -288,7 +288,7 @@ def jails_list():
 
       jailscfg.append([act, mas[i + 4], mas[i], mas[i + 3],mas[i + 5],mas[i + 6], "%s%s" % (jpath, mas[i]), zfs_use_aveilable, zfs_quotacheck,  zfs_snap])
 
-   return  (active, name, jid, ip, gw, hostname, path, jailscfg)
+   return  (active, name, jid, ip, gw, hostname, path, sorted(jailscfg,  key=lambda x: int(x[1])))
 
 def bdsinstall_src(install_path):
    """
@@ -659,6 +659,9 @@ def jail_start_stop(action, jnid = ''):
 
          elif yn in "yY":
             for i in jails[1]:
+               if "template" in i:
+                   print "      '%s' mark as template jadm will skip it!" % (i)
+                   continue
                print "      We will start jail: '%s'" % (i)
                os.system("jail -c %s" % (i))
             return False
@@ -1217,8 +1220,15 @@ def help():
    print "       rmsnap -  Remove Jail ZFS snapshot (usage: rmsanp 'jailname or jid')"
 #   print "       migration - Migrate Jail vm between different system via ssh"
    print "       start - Start Jail (usage: start 'jailname, jid or all')"
+   print "        - if jail name content \"tmeplate\" jadm will skip it when \"start all\" is used"
    print "       stop - Stop new Jail (usage: stop 'jailname, jid or all')"
-   print "       list - List Jails on the system (usage: list 'jailname or jid' / only 'list')"
+   print "       list - List Jails on the system"
+   print "        - List Jail by name  (usage: list 'name/jid' )"
+   print "        - List Jail by hostname  (usage: list hostname 'jail hostname' )"
+   print "        - List Jail by ipaddress (usage: list ip 'ipaddress/netmask')"
+   print "        - List Jails by gateway  (usage: list gw 'gateway ip')"
+   print "        - List Actvie Jails      (usage: list active)"
+   print "        - List Inactive Jails    (usage: list inactive)"  
    print "       shell - Enter in Jail (usage: shell 'jailname, jid or all')"
    print "       gateways - List available Jail gateways on the system"
    print " "    
@@ -1673,26 +1683,58 @@ def jail_table(mcmd):
 #
    """
    jails = jails_list()
+   one_jail = []
+   lmen = ["ACTIVE", "JID", "NAME", "HOSTNAME", "IP ADDRESS", "GATEWAY", "PATH", "USED/FREE SPACE", "ZFS QUOTA",  "SNAPHOST"]
    
    if len(mcmd) == 2:
+      if mcmd[1] ==  "active":
+          for i in jails[7]:
+              if i[0] == 1:
+                  one_jail.append(i)
+          print tabulate(one_jail, lmen)
+          return False
+      if mcmd[1] ==  "inactive":
+          for i in jails[7]:
+              if i[0] == 0:
+                  one_jail.append(i)
+          print tabulate(one_jail, lmen)
+          return False
+          
       jnid = jid_jname(mcmd[1])   
       if jnid == False:
          return False
       if jnid in jails[1]:
-         one_jail = []
          for i in jails[7]:
             if i[2] == jnid: 
                one_jail.append(i)
-         lmen = ["ACTIVE", "JID", "NAME", "HOSTNAME", "IP ADDRESS", "GATEWAY", "PATH", "USED/FREE SPACE", "ZFS QUOTA",  "SNAPHOST"]
          print tabulate(one_jail, lmen)
       else:
          print "       Jail with name '%s' not found!" % (jnid)
          return False
 
    if len(mcmd) == 1:
-      lmen = ["ACTIVE", "JID", "NAME", "HOSTNAME", "IP ADDRESS", "GATEWAY", "PATH", "USED/FREE SPACE", "ZFS QUOTA",  "SNAPSHOTS"]
       print tabulate(jails[7], lmen)
-
+      return False
+      
+   if len(mcmd) == 3:
+       if mcmd[1] == "gw":
+           for i in jails[7]:
+               if i[5] == mcmd[2]:
+                   one_jail.append(i)
+           print tabulate(one_jail, lmen)
+           return False
+       if mcmd[1] == "ip":
+           for i in jails[7]:
+               if i[4] == mcmd[2]:
+                   one_jail.append(i)
+           print tabulate(one_jail, lmen)
+           return False
+       if mcmd[1] == "hostname":
+           for i in jails[7]:
+              if i[3] == mcmd[2]:
+                   one_jail.append(i)
+           print tabulate(one_jail, lmen)
+           return False
 
 def jail_shell(jnid = ''):
    """

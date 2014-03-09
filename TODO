@@ -14,8 +14,5 @@ TO DO list: not in order
 6. jadm python comments
 7. additional config modify
 8. global additional config modify
-9. list per ip/gw/host and etc
-10. sort list per jail id
-11. skip jail include "template" in name - start all function
 ...
 99. interactive jadm comand shell (pygame will be included)
