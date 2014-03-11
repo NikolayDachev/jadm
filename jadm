@@ -771,7 +771,7 @@ def jail_destroy(action, jnid = ''):
          print "      WARNING: Jail '%s' was removed!" % (jnid) 
      
       if action == "destroy":
-         print "      WARNING: Jail '%s' will be destroyed all data/zfs will be deleted!" % (jnid)
+         print "      WARNING: Jail '%s' will be destroyed all data/zfs and snapshots will be deleted!" % (jnid)
          yn = raw_input("... Please confirm (y/n): ")
          if yn in "nN":
             print "      Jail remov was interrupted by user"
@@ -782,7 +782,7 @@ def jail_destroy(action, jnid = ''):
             del jcl[jb:je]
             jc.write('\n'.join(jcl))
             jc.close()
-            os.system("zfs destroy %s/%s" % (jzfs, jnid))
+            os.system("zfs destroy -r %s/%s" % (jzfs, jnid))
             print "      WARNING: Jail '%s' was destroyed!" % (jnid)
 
    else:
