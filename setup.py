@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# JADM python build/install setup file
 
 from setuptools import setup, find_packages
 setup(
@@ -20,5 +21,5 @@ setup(
     description = "JADM is a easy FreeBSD 10 jail framework with /etc/jail.conf, vnet and zfs support ",
     license = "BSD 3-Clause",
     keywords = "jadm vnet zfs jail.conf",
-    url = "https://github.com/NikolayDachev/jadm",   # project home page, if any
+    url = "https://github.com/NikolayDachev/jadm",   # project home page
 )
