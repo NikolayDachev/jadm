@@ -2,15 +2,15 @@ JADM
 
 TO DO list: not in order
 
-1. Make python setup file aloso freebsd port for jadm (in order to install all required pkg used by jadm)
-2. jail envoirment install (need impruvments)
+1. jail envoirment install (need impruvments)
  - bsdinstall
  - src
  --- test for bugs
  --- postinstall
-3. check for "dying" jail start/stop
-4. def() organizations
-5. migration - ?
-6. jadm python comments
+2. check for "dying" jail start/stop
+3. def() organizations
+4. migration - ?
+5. jadm python comments
+6. man page
 ...
 99. interactive jadm comand shell (pygame will be included)
