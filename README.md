@@ -19,9 +19,13 @@ Requirments:
 If are not installed:
 - pkg install python
 - pkg install py27-pip
-- pip install tabulate
-- pip install netifaces
-- pip install ipaddress
+
+- "Install via setup.py"
+- python setup.py build
+- python setup.py install
+- "Install via FreeBSD port .. should be tested"
+- cd ./FreeBSD
+- make install
 
 - 'option vimage' in FreeBSD custom kernel
 - already exinsting zpool
