@@ -1,4 +1,3 @@
-=====line 21 col 0 lines from top 21 ==========================================
 # $FreeBSD$
 
 PORTNAME=       jadm
@@ -7,7 +6,7 @@ CATEGORIES=     sysutils
 
 USE_GITHUB=     yes
 GH_ACCOUNT=     NikolayDachev
-GH_COMMIT=      dd10ff6
+GH_COMMIT=      6999a3c
 GH_TAGNAME=     v0.7
 
 MAINTAINER=     jadm@dachev.info
@@ -18,7 +17,7 @@ MAN8=           jadm.8
 USE_PYTHON=yes
 USE_PYDISTUTILS=steuptools
 
-BUILD_DEPENDS= py-pip:${PORTSDIR}/devel/py-pip 
+DEPENDS= py-pip:${PORTSDIR}/devel/py-pip 
 
 post-install:
 	pip install tabulate
