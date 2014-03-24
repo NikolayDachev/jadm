@@ -20,17 +20,17 @@ Requirments:
 
 Quick install:
 
-- If are not installed:
--- pkg install python
--- pkg install py27-pip
+If are not installed:
+- pkg install python
+- pkg install py27-pip
 
-- "Install via setup.py"
--- python setup.py build
--- python setup.py install
+"Install via setup.py"
+- python setup.py build
+- python setup.py install
 
-- "Install via FreeBSD port .. should be tested"
--- cd ./FreeBSD
--- make install
+"Install via FreeBSD port .. should be tested"
+- cd ./FreeBSD
+- make install
 
 Create FreeBSD bridge interface and assign ip address:
 - ifconfig bridge1 create
