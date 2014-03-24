@@ -6,7 +6,7 @@ CATEGORIES=     sysutils
 
 USE_GITHUB=     yes
 GH_ACCOUNT=     NikolayDachev
-GH_COMMIT=      6999a3c
+GH_COMMIT=      bf87d6e
 GH_TAGNAME=     v0.7
 
 MAINTAINER=     jadm@dachev.info
