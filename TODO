@@ -2,15 +2,9 @@ JADM
 
 TO DO list: not in order
 
-1. jail envoirment install (need impruvments)
- - bsdinstall
- - src
- --- test for bugs
- --- postinstall
-2. check for "dying" jail start/stop
-3. def() organizations
-4. migration - ?
-5. jadm python comments
-6. man page
+1. check for "dying" jail start/stop
+2. def() organizations
+3. migration - ?
+4. jadm python comments
 ...
 99. interactive jadm comand shell (pygame will be included)
