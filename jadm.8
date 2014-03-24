@@ -4,10 +4,19 @@
 .SH NAME
 jadm \- FreeBSD jail framework with vnet, zfs and /etc/jail.conf support
 .SH DESCRIPTION
-Jadm provide jail framewaork wich use only FreeBDS native /etc/jail.conf file.
-Jamd just pars /etc/jail.conf file also use FreeBSD integradted zfs functunality, bsdinstall for jail creations (also src) and freebsd jail tools.
-Jadm create custom jail.conf file with initsetup() function (make a backup if /etc/jail.conf exist)
-Jjadm use zfs for jail envoirment also bridge interface for vnet network
+Jadm provide jail framework which use only FreeBDS native /etc/jail.conf file.
+Jadm just pars /etc/jail.conf file also use FreeBSD integrated zfs functionality, bsdinstall for jail creations (also src) and freebsd jail tools.
+Jadm create custom /etc/jail.conf file with initsetup() function (make a backup if /etc/jail.conf exist)
+Jadm use zfs for jail envoirment also bridge+epair interfaces for vnet(vimage) network
+.SH REQUIREMENTS
+.TP
+.B 'option vimage' 
+in FreeBSD custom kernel
+.TP
+.B already exinsting zfs pool
+.TP
+.B already existing bridge interface with ip address
+ (you can use multiple ip's which are used for jails gateways for different network)
 .SH OPTIONS
 .TP
 .B initsetup
@@ -140,16 +149,34 @@ Stop Jail
 List Jais by name, hostname, ipaddress, gateway, active, inactive
 .TP
 .B local
+.br
 Jails local options
-- List Jail local options   (usage: local list 'name/jid' )
-- Remove Jail local options (usage: local rm 'name/jid' )
-- Add Jail local option     (usage: local add 'name/jid' 'option=val;')
+.br
+For local option you can use all fine tunning jail options like 'mount.ftab' and etc. Local option apply only to jail. Local option should be set in this format 'option=val;' or jadm will not accept it.
+.br
+.B - List Jail local options
+(usage: local list 'name/jid' )
+.br
+.B - Remove Jail local options
+(usage: local rm 'name/jid' )
+.br
+.B - Add Jail local option
+(usage: local add 'name/jid' 'option=val;')
 .TP
 .B global
+.br
 Jails global options
-- List Jails global options   (usage: global list )
-- Remove Jails global options (usage: gloval rm )
-- Add Jails global option     (usage: global add 'option=val;')
+.br
+For global option you can use all fine tunning jail options like 'mount.ftab' and etc. Global option apply only to all jails. Global option should be set in this format 'option=val;' or jadm will not accept it.
+.br
+.B - List Jails global options
+(usage: global list )
+.br
+.B - Remove Jails global options
+(usage: gloval rm )
+.br
+.B - Add Jails global option
+(usage: global add 'option=val;')
 .TP
 .B shell
 Enter in Jail (usage: shell 'jailname, jid or all')
