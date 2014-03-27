@@ -43,7 +43,7 @@ import netifaces
 # Main config vars:
 ########################################################################################
 
-jadm_version = "ver. 0.7"
+jadm_version = "ver. 0.71"
 jailconf = '/etc/jail.conf' # jail.conf location by default /etc/jail.conf
 
 # empty vars
@@ -382,22 +382,16 @@ def bdsinstall_src(install_path):
          jtemp_file = "jadm_temp_file"
          tempdir = "/%s" % (jzfs)
 
-         print "       Create temp snapshot '%s/%s@jadm_template'" % (jzfs, jtemplate)
+         print "       Create temporary snapshot '%s/%s@jadm_template'" % (jzfs, jtemplate)
          os.system('zfs snapshot %s/%s@jadm_template' % (jzfs, jtemplate))
 
-         print "       Create temp file '%s/%s' from '%s/%s@jadm_template'" % (tempdir, jtemp_file, jzfs, jtemplate)
-         os.system('zfs send %s/%s@jadm_template > %s/%s' % (jzfs, jtemplate, tempdir, jtemp_file))
- 
-         print "       Restor '%s' from '%s/%s'" % (install_path[1:], tempdir, jtemp_file)
-         os.system('zfs receive -F %s < %s/%s' % (install_path[1:], tempdir, jtemp_file))
- 
-         print "       Remove temp file '%s/%s'" % (tempdir, jtemp_file)
-         os.system('rm -rf %s/%s' % (tempdir, jtemp_file))
+         print "       Copy '%s/%s@jadm_template' data to '%s'" % (jzfs, jtemplate, install_path[1:])
+         os.system('zfs send %s/%s@jadm_template | zfs recv -F %s' % (jzfs, jtemplate, install_path[1:]))
 
-         print "       Destroy temp snapshots '%s/%s@jadm_template' and '%s@jadm_template'" % (jzfs, jtemplate, install_path[1:])
+         print "       Destroy temporary snapshots '%s/%s@jadm_template' and '%s@jadm_template'" % (jzfs, jtemplate, install_path[1:])
          os.system('zfs destroy %s/%s@jadm_template' % (jzfs, jtemplate))
          os.system('zfs destroy %s@jadm_template' % (install_path[1:]))
-
+ 
          print "       Copy '--- additional config ---' from template jail '%s'" % (jtemplate)
 
          fj = find_jail(jtemplate)
