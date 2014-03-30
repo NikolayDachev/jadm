@@ -53,4 +53,4 @@ Add this in /etc/rc.conf if you want to start jails on boot
 When jadm is started for first time check if /etc/jail.conf exist and execute initsetup()
 When jamd is started check for existing zpool/zfs and bridged interface if they are not available exit with error message
 
-For more details how to use jadm please check help funciton or jadm man (8) page
+For more details how to use jadm please check help / introduction options or jadm man (8) page
