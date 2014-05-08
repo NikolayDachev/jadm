@@ -41,12 +41,13 @@ import netifaces
 import cmd
 import paramiko
 
+
 ########################################################################################
 # Main config vars:
 ########################################################################################
 
 # jadm version
-jadm_version = "ver. 0.85"
+jadm_version = "ver. 0.86"
 
 # jail.conf location by default /etc/jail.conf
 jailconf = '/etc/jail.conf' 
@@ -222,13 +223,15 @@ def load_jail_config(conf_f):
    jc.close()
    return mas
 
-def jails(jconf = load_jail_config(jailconf)):
+def jails(jconf = None):
    """
 ########################################################################################
 # Return only jails names, they are used for search point in load_jail_config() and etc
 #
    """
-
+   if not jconf:
+       jconf = load_jail_config(jailconf)
+       
    jsname = []
 # enumerate in order to avoid wrong index for similiar items like { 
 # take only elements which are before { symbol
@@ -266,7 +269,7 @@ def find_jail(jname,  jailconf = jailconf):
    jc.close()
    return jb, je, jcl
     
-def jails_list(mas = load_jail_config(jailconf),  jails = jails(),  remote_zfs = 0):
+def jails_list(mas = None,  remote_zfs = 0):
    """
 ########################################################################################
 # Return list of jails by order:
@@ -281,8 +284,11 @@ def jails_list(mas = load_jail_config(jailconf),  jails = jails(),  remote_zfs =
 #
    """
 # load jails config
- #  mas = load_jail_config(jailconf)
- 
+
+   if not  mas:
+      mas = load_jail_config(jailconf)
+   
+  
    active = []
    name = []
    jid = []
@@ -292,7 +298,7 @@ def jails_list(mas = load_jail_config(jailconf),  jails = jails(),  remote_zfs =
    path = []
    jailscfg = []
 
-   for i in jails:
+   for i in jails(mas):
 # 1st element is jail name
 # all other are 1ts element positon +
       name.append(mas[i])
@@ -307,7 +313,7 @@ def jails_list(mas = load_jail_config(jailconf),  jails = jails(),  remote_zfs =
    caj = caj.split('\n')
    
 # convert active/inactive results to 1 or 0 which displayed in jadm list table   
-   for i in jails:
+   for i in jails(mas):
 
       if mas[i + 4] in caj:
          act = 1
@@ -2219,7 +2225,7 @@ def migrate(jnid, remote = '',  ssh_pass = ''):
 
 # remote jails config
    rjails_c = load_jail_config(jailconf_remote)
-   remote_jails = jails_list(rjails_c, jails(rjails_c),  remote_zfs = 1)
+   remote_jails = jails_list(rjails_c, remote_zfs = 1)
 
 # cehck default remote host zfs home
    for i in open(jailconf_remote,  'r'):
@@ -2433,9 +2439,11 @@ class lcmd(cmd.Cmd):
 #  interactive main menu with 'cmd' function
 #
    """
- 
+
+   load_jail_config('/etc/jail.conf')
+
    prompt = 'jadm:> '
-   
+  
    local_global = ['list',  'remove',  'add']
    snap = ['list', 'create',  'remove',  'restore']
    listcmd = ['list', 'name',  'hostname',  'ip',  'gw',  'active',  'inactive']
