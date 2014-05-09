@@ -335,8 +335,11 @@ def jails_list(mas = None,  remote_zfs = 0):
       except:
             zfs_snap = 0
        
- # check jail zfs quota      
-      jzfspath = jzfs+"/"+mas[i]
+ # check jail zfs quota
+      if 'BASE-' in mas[i]:
+          jzfspath = jzfs+"/BASE-RW/"+mas[i]
+      if 'BASE-' not in mas[i]:
+          jzfspath = jzfs+"/"+mas[i]
       if remote_zfs == 0:
          zfs_quotacheck = subprocess.check_output("zfs get -H quota %s" % (jzfspath), shell=True).replace('\n', ' ').replace('\t', ' ').split(' ')[2]
       else:
@@ -375,8 +378,8 @@ def bdsinstall_src(install_path,  jname,  choise):
 
 # Skeleton jail model install
       if choise == 'skel':
-         skel_model('install',  install_path)
-         jadm_postinstall(install_path)
+         temp_add_cfg = skel_model('install',  install_path,  jname)
+         jadm_postinstall('%s/BASE-RW/%s' % (jzfs, jname))
          print "       Jail envoirment for %s was installed as skeleton model from 'BASE' jail" % jname
          return temp_add_cfg
 
@@ -675,10 +678,11 @@ def jail_create():
       print " "
       if jname == 'BASE':
           print "...  New 'BASE' for skeleton model will be created ... \n"
-      if 'BASE_' in jname:
+      if 'BASE-' in jname:
            print "...  New Jail with skeleton model will be created 'BASE' home: %s/BASE ... \n" % jzfs  
       if jname != 'BASE':
-          print "...  New Jail will be created ... \n"
+          if jname != 'BASE-':
+             print "...  New Jail will be created ... \n"
       new_jail_menu  = ['New Jail', 'Settings']
       new_jail_settings = [['Name', jname], ['Hostname', jhostname], ['ID', jid], ['IP address', jip], ['Gateway', jgw], ['ZFS', "%s/%s" % (jzfs, jname)], ['ZFS Quota', jquota],  ['Install Source',  install_choise]]
       print tabulate(new_jail_settings, new_jail_menu)
@@ -714,7 +718,7 @@ def jail_create():
          jc.close()
          
          if jname == 'BASE':
-             skel_model('init',  jpath+jname)
+             skel_model('init',  jpath+jname,  jname)
          
          print " "
          logmsg = "Jail \'%s\' was successful created!" % (jname)
@@ -732,6 +736,15 @@ def jail_crete_zfs(jname,  jquota):
 # jname = jail name wich will be used for /jadm_default_zfs/jail_home_path
 #
    """
+# check if is skeleton jail and make folder - do not make ZFS
+   if 'BASE-' in jname:
+       if os.path.isdir('/%s/%s' % (jzfs, jname)) == False:
+           os.system("mkdir /%s/%s" % (jzfs, jname))
+           use = 0
+           skel_quota = '%s/BSE-RW/%s' % (jzfs,  jname)
+           zfs_quota(skel_quota, jquota)
+           return use
+   
    zfs = subprocess.check_output("zfs list -H -o name", shell=True)
    zfs = zfs.split('\n')
          
@@ -2513,6 +2526,7 @@ def skel_model(action, install_path,  jname):
        os.system('mv %s/tmp %s' % (install_path, skel_path ))
        os.system('mv %s/var %s' % (install_path, skel_path ))
        os.system('mv %s/root %s' % (install_path, skel_path ))
+       os.system('mv %s/dev %s' % (install_path, skel_path ))
 # mergemaster to install missing configuration files. Then, remove the the extra directories that mergemaster creates:
 #      os.system('mergemaster -t %s/var/tmp/temproot -D %s -i' % (skel_path,  skel_path))
 #      os.system('rm -R %(key)s/bin %(key)s/boot %(key)s/lib %(key)s/libexec %(key)s/mnt %(key)s/proc %(key)s/rescue %(key)s/sbin %(key)s/sys %(key)s/usr %(key)s/dev' % {'key': skel_path})
@@ -2527,6 +2541,7 @@ def skel_model(action, install_path,  jname):
        os.system('ln -s SROOT/distfiles usr/ports/distfiles')
        os.system('ln -s SROOT/tmp tmp')
        os.system('ln -s SROOT/var var')
+       os.system('ln -s SROOT/dev dev')
 # Create a generic /home/j/skel/etc/make.conf containing this line
        os.system('echo \"WRKDIRPREFIX?=  /SROOT/portbuild\" > %s/etc/make.conf' % skel_path )
 # Create zfs BASE-SKELETON snapshot which will be used for installation       
@@ -2538,12 +2553,11 @@ def skel_model(action, install_path,  jname):
    if action == 'install':
        os.chdir('%s' % install_path)
 # install RW fs for jail
-       os.system('zfs send %s@install | zfs receive %s/%s' % (skel_path[1:],  rw_path[1:], jname))
-# create jail fstab - NOT COMP
-       os.system('echo \"%s/BASE   %s     nullfs  ro  0   0\" > %s/etc/fstab.%s' % (jzfs,  install_path, install_path,  jname ) )
-       os.system('echo \"%s/%s     %s/SROOT   nullfs  rw  0   0\" >> %s/etc/fstab.%s' % (skel_path, jname, install_path, install_path,  jname ))
-       
-       
+       os.system('zfs send %s/BASE-SKELETON@install | zfs receive -F %s/BASE-RW/%s' % (jzfs,  jzfs, jname))
+# create jail local config - mount skel model for jail hosme dir
+       temp_add_cfg = ['exec.prestart += "mount_nullfs -o ro /%s/BASE %s";' % (jzfs,  install_path), 'exec.prestart += "mount_nullfs -o rw /%s/BASE-RW/%s %s/SROOT";' % (jzfs, jname,  install_path), \
+       'exec.poststop += "umount -f %s/SROOT";' % install_path, 'exec.poststop += "umount -f %s";' % install_path]
+       return temp_add_cfg
        
 
 ########################################################################################
