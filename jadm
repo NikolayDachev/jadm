@@ -47,7 +47,7 @@ import paramiko
 ########################################################################################
 
 # jadm version
-jadm_version = "ver. 0.86"
+jadm_version = "ver. 0.87"
 
 # jail.conf location by default /etc/jail.conf
 jailconf = '/etc/jail.conf' 
@@ -379,13 +379,11 @@ def bdsinstall_src(install_path,  jname,  choise):
 # Skeleton jail model install
       if choise == 'skel':
          temp_add_cfg = skel_model('install',  install_path,  jname)
-         jadm_postinstall('%s/BASE-RW/%s' % (jzfs, jname))
          print "       Jail envoirment for %s was installed as skeleton model from 'BASE' jail" % jname
          return temp_add_cfg
 
 # install new jail with FreeBSD bsdinstall tool
       if choise == 'bsd':
-         
          os.system("bsdinstall jail %s" % (install_path))
          jadm_postinstall(install_path)
 
@@ -395,7 +393,6 @@ def bdsinstall_src(install_path,  jname,  choise):
    
 # install new jail from FreeBSD sources /usr/src (build and install)  
       if choise == 'src':
-
          src_chlist = ['build', 'install']
          src_choise = ''
        
@@ -541,104 +538,112 @@ def jail_create():
          return False 
       else:
          break
-               
-   while True:
-      jhostname = raw_input('Jail Hostname:> ')
-      if jhostname in ['', ' ', '   ']:
-         print "            Please enter Jail Hostname!"
-         continue
-
-      if jhostname in jails[5]:
-         print "            Jail with Hostname '%s' already exist please choose different name!" % (jhostname)
-      elif jhostname == "!":
-         print "            Interrupted by user - !"
-         return False
-      else:
-         break
-
-   while True:
-      jid = raw_input('Jail ID:> ')
-      if jid == "!":
-         print "            Interrupted by user - !"
-         return False
-      try:
-         int(jid)
-      except ValueError:
-         print "            Please use only numbers for Jail ID!"
-         continue
-      if jid in jails[2]:
-         print "            Jail with ID '%s' already exist please choose different name!" % (jid)
-      else:
-         break
-
-   brin, gwip, gwnet = bridge()
-   while True:
-      jgw = raw_input('Jail Gateway number:> ')
-
-      if jgw == "!":
-         print "            Interrupted by user - !"
-         return False
-
-      try:
-        int(jgw)
-      except ValueError:
-        print "            Slecet valid Gateway number (%s - %s)!" % (0, len(gwip) - 1)
-        continue
-
-      if int(jgw) >= len(gwip):
-         print "            Slecet valid Gateway number (%s - %s)!" % (0, len(gwip) - 1)
-      else:
-         gwnet = gwnet[int(jgw)]
-         jgw = gwip[int(jgw)]
-         break
-
-   while True:
-      ji = raw_input('Jail IP Address:> ')
-      if ji == "!":
-         print "            Interrupted by user - !"
-         return False
-
-      if ch_ipv4(ji) == False:
-         print "            Please enter valid IP address!"
-         continue
-      
-      bridge_ip_check, brnet = bridge_network_check(ji, jgw, gwnet)
-
-      if int(bridge_ip_check) == 0:
-         print "            %s ip addreess not in %s network" % (ji, brnet)
-         continue
-      else:
-         jip = str(ji) + str(brnet)[-3:]
-         if str(ji) == str(jgw):
-            print "            '%s' is Gateway address please enter different!" % (jip)
+    
+   if jname != 'BASE':
+      while True:
+         jhostname = raw_input('Jail Hostname:> ')
+         if jhostname in ['', ' ', '   ']:
+            print "            Please enter Jail Hostname!"
             continue
 
-         if jip in jails[3]:
-            print "            Jail with IP address '%s' already exist please enter different!" % (jip)
+         if jhostname in jails[5]:
+            print "            Jail with Hostname '%s' already exist please choose different name!" % (jhostname)
+         elif jhostname == "!":
+            print "            Interrupted by user - !"
+            return False
          else:
             break
-         
-   while True:
-      jquota = raw_input('Jail ZFS Quota (M)egabytes, (G)igabytes, (none) for unlimited:> ')
+
+      while True:
+         jid = raw_input('Jail ID:> ')
+         if jid == "!":
+            print "            Interrupted by user - !"
+            return False
+         try:
+            int(jid)
+         except ValueError:
+            print "            Please use only numbers for Jail ID!"
+            continue
+         if jid == "0":
+            print "            Jail with ID '%s' is reserved for 'BASE' jail skeleton model!" % (jid)
+            continue 
+            
+         if jid in jails[2]:
+            print "            Jail with ID '%s' already exist please choose different!" % (jid)
+         else:
+            break
+
+      brin, gwip, gwnet = bridge()
+      while True:
+         jgw = raw_input('Jail Gateway number:> ')
+
+         if jgw == "!":
+            print "            Interrupted by user - !"   
+            return False
+
+         try:
+           int(jgw)
+         except ValueError:
+           print "            Slecet valid Gateway number (%s - %s)!" % (0, len(gwip) - 1)
+           continue
+
+         if int(jgw) >= len(gwip):
+            print "            Slecet valid Gateway number (%s - %s)!" % (0, len(gwip) - 1)
+         else:
+            gwnet = gwnet[int(jgw)]
+            jgw = gwip[int(jgw)]
+            break
+
+      while True:
+         ji = raw_input('Jail IP Address:> ')
+         if ji == "!":
+            print "            Interrupted by user - !"
+            return False
+
+         if ch_ipv4(ji) == False:
+            print "            Please enter valid IP address!"
+            continue
       
-      if jquota == "!":
-         print "            Interrupted by user - !"
-         return False
+         bridge_ip_check, brnet = bridge_network_check(ji, jgw, gwnet)
 
-      if jquota == "none":
-         break
+         if int(bridge_ip_check) == 0:
+            print "            %s ip addreess not in %s network" % (ji, brnet)
+            continue
+         else:
+            jip = str(ji) + str(brnet)[-3:]
+            if str(ji) == str(jgw):
+               print "            '%s' is Gateway address please enter different!" % (jip)
+               continue
 
-      try:
-        int(jquota[:-1])
-      except ValueError:
-        print "            Please use numebrs only with (M)egabytes or (G)igabytes indicator at the end!)"
-        continue
+            if jip in jails[3]:
+               print "            Jail with IP address '%s' already exist please enter different!" % (jip)
+            else:
+               break
+         
+      while True:
+         jquota = raw_input('Jail ZFS Quota (M)egabytes, (G)igabytes, (none) for unlimited:> ')
+      
+         if jquota == "!":
+            print "            Interrupted by user - !"
+            return False
 
-      if str(jquota[-1]) not in ['M', 'G']:
-        print "            Please use only (M)egabytes or (G)igabytes indicator at the end!)"
-        continue
-      else:
-        break
+         if jquota == "none":
+            break
+
+         try:
+           int(jquota[:-1])
+         except ValueError:
+           print "            Please use numebrs only with (M)egabytes or (G)igabytes indicator at the end!)"
+           continue
+
+         if str(jquota[-1]) not in ['M', 'G']:
+           print "            Please use only (M)egabytes or (G)igabytes indicator at the end!)"
+           continue
+         else:
+           break
+
+   if jname == 'BASE':
+      (jhostname, jid, jgw, jip, jquota) = ('BASE.localhost',  '0', '0.0.0.0', '0.0.0.0',  'NONE'  )
 
    print " "
    chlist = ['bsd', 'src', 'template', 'skel', '!']
@@ -656,7 +661,7 @@ def jail_create():
          print "            Interrupted by user - !"
          return False
       if install_choise not in chlist:
-         print "                  type only 'template', 'bsd', 'src' or '!'"
+         print "            type only 'template', 'bsd', 'src' or '!'"
          continue
       break
 # Check if BASE jail exist
@@ -678,10 +683,7 @@ def jail_create():
       print " "
       if jname == 'BASE':
           print "...  New 'BASE' for skeleton model will be created ... \n"
-      if 'BASE-' in jname:
-           print "...  New Jail with skeleton model will be created 'BASE' home: %s/BASE ... \n" % jzfs  
       if jname != 'BASE':
-          if jname != 'BASE-':
              print "...  New Jail will be created ... \n"
       new_jail_menu  = ['New Jail', 'Settings']
       new_jail_settings = [['Name', jname], ['Hostname', jhostname], ['ID', jid], ['IP address', jip], ['Gateway', jgw], ['ZFS', "%s/%s" % (jzfs, jname)], ['ZFS Quota', jquota],  ['Install Source',  install_choise]]
@@ -741,7 +743,8 @@ def jail_crete_zfs(jname,  jquota):
        if os.path.isdir('/%s/%s' % (jzfs, jname)) == False:
            os.system("mkdir /%s/%s" % (jzfs, jname))
            use = 0
-           skel_quota = '%s/BSE-RW/%s' % (jzfs,  jname)
+           skel_quota = '%s/BASE-RW/%s' % (jzfs,  jname)
+           os.system('zfs create %s' % skel_quota)
            zfs_quota(skel_quota, jquota)
            return use
    
@@ -793,6 +796,10 @@ def jail_start_stop(action, jnid = ''):
    """
    jails = jails_list()
 
+   if jnid == 'BASE':
+      print "       'BASE' jail cannot be used!"
+      return False
+
    if jnid == "all":
       if action == "start":
          yn = raw_input("      do you want to start ALL jails on system (y/n):> ")
@@ -807,8 +814,15 @@ def jail_start_stop(action, jnid = ''):
                    logmsg = "start all -> mark as template jadm will skip: '%s'" % (i)
                    print logmsg
                    log(logmsg)  
-  
                    continue
+               if i == "BASE":
+# print and add to log file            
+                   print " "
+                   logmsg = "start all -> mark as BASE jadm will skip: '%s'" % (i)
+                   print logmsg
+                   log(logmsg)  
+                   continue
+
 # print and add to log file 
                print " "
                logmsg = "start all -> We will start jail: '%s'" % (i)
@@ -851,7 +865,14 @@ def jail_start_stop(action, jnid = ''):
                    logmsg = "reboot all -> mark as template jadm will skip: '%s'" % (i)
                    print logmsg
                    log(logmsg)  
-  
+                   continue
+                   
+               if i == "BASE":
+# print and add to log file            
+                   print " "
+                   logmsg = "start all -> mark as BASE jadm will skip: '%s'" % (i)
+                   print logmsg
+                   log(logmsg)  
                    continue
 # print and add to log file            
                print " "
@@ -877,6 +898,10 @@ def jail_start_stop(action, jnid = ''):
       else:
          print "       Jail with ID '%s' not found!" % (jnid)
          return False
+
+   if jnid == 'BASE':
+      print "       'BASE' jail cannot be used!"
+      return False
 
    if jnid in jails[1]:
       if action == "start":
@@ -952,7 +977,6 @@ def jail_destroy(action, jnid = ''):
          return False
 
    if jnid in jails[1]:
-
       jail_start_stop('stop', jnid) # stop jail befor other action
 
       fj = find_jail(jnid)
@@ -961,6 +985,11 @@ def jail_destroy(action, jnid = ''):
       jcl = fj[2]
 
       if action == "remove":
+# remove is not supported for  'BASE' skeleton modeil          
+         if jnid == 'BASE':
+            print "       'BASE' jail cannot be removed!"
+            return False
+# remove jail            
          print "      WARNING: Jail '%s' will be removed but data/zfs will be keeped!" % (jnid)
          yn = raw_input("... Please confirm (y/n): ")
          if yn in "nN":
@@ -977,20 +1006,60 @@ def jail_destroy(action, jnid = ''):
             log(logmsg)
      
       if action == "destroy":
+# check if 'BASE' skeleton modeil is used by other jails          
+         if jnid == 'BASE':
+            base_jails = []
+            for i in jails[1]:
+                if 'BASE-' in i:
+                    base_jails.append(i)
+            if len(base_jails) > 0:
+               print "WARNING: jail skeleton 'BASE' is used by:"
+               jail_table(['1', 'BASE-'])
+               print "WARNING: Please destroy all jails with 'BASE' skeleton model!"
+               return False
+# destroy BASE' skeleton modeil
+            print "      WARNING: BASE skeleton model will be destroyed!"
+            while True:
+                    yn = raw_input("... Please confirm (y/n/!): ")
+                    if yn in "nN":
+                       print "      BASE skeleton model destroy was interrupted by user"
+                       return False
+                    if yn == "!":
+                       print "      BASE skeleton model destroy was interrupted by user"
+                       return False
+                    if yn in "yY":
+                      jc = open(jailconf, 'w')
+                      del jcl[jb:je]
+                      jc.write('\n'.join(jcl))
+                      jc.close()
+                      os.system("zfs destroy -r %s/%s" % (jzfs, jnid))
+                      os.system("zfs destroy -r %s/%s-RW" % (jzfs, jnid))
+                      os.system("zfs destroy -r %s/%s-SKELETON" % (jzfs, jnid))
+                      print " "
+                      logmsg = "WARNING: BASE skeleton model was destroyed!"
+                      print logmsg
+                      log(logmsg)
+                      return False
+             
+ # destroy jail         
          print "      WARNING: Jail '%s' will be destroyed all data/zfs and snapshots will be deleted!" % (jnid)
          yn = raw_input("... Please confirm (y/n): ")
          if yn in "nN":
-            print "      Jail remov was interrupted by user"
+            print "      Jail destroy was interrupted by user"
             return False
          if yn in "yY":
-          
+           
             jc = open(jailconf, 'w')
             del jcl[jb:je]
             jc.write('\n'.join(jcl))
             jc.close()
+# check if is skeleton jails
+            logmsg = "WARNING: Jail '%s' was destroyed!" % (jnid)
+            if 'BASE-' in jnid:
+                os.system("rmdir /%s/%s" % (jzfs, jnid))
+                jnid = 'BASE-RW/%s' % jnid
             os.system("zfs destroy -r %s/%s" % (jzfs, jnid))
             print " "
-            logmsg = "WARNING: Jail '%s' was destroyed!" % (jnid)
             print logmsg
             log(logmsg)
    else:
@@ -1057,6 +1126,10 @@ def jail_snapshot(action, jnid = ''):
       else:
          print "       Jail with ID '%s' not found!" % (jnid)
          return False
+
+   if jnid == 'BASE':
+      print "       'BASE' jail cannot have snapshots!"
+      return False
 
    if jnid in jails[1]:
 
@@ -1197,9 +1270,30 @@ def jail_modify(jnid = ''):
          print "       Jail with ID '%s' not found!" % (jnid)
          return False
    
+   if jnid == 'BASE':
+      print "       'BASE' jail cannot be modifyed!"
+      return False
+
+# mark jail for BASE skeleton
+   base = 0
+   if 'BASE-' in jnid:
+       base = 1
+
    if jnid in jails[1]:
 
-      jail_start_stop('stop', jnid) # stop jail befor other action
+      while True:
+         print "      WARNING: Jail '%s' should be stopped!" % (jnid)
+         yn = raw_input("... Please confirm (y/n): ")
+         if yn in "nN":
+            return False
+         if yn in "yY":
+# print and add to log file            
+             print " "
+             logmsg = "Stop Jail '%s' in process ..." % (jnid)
+             print logmsg
+             log(logmsg)  
+             os.system("jail -r %s" % jnid)
+             break
 
       for i in jails[-1]:
          if i[2] == jnid:
@@ -1209,6 +1303,8 @@ def jail_modify(jnid = ''):
       print " "
       
       while True:
+         if base == 1:
+             print "%s is BASE skleton jail please enter name without 'BASE-' string" % jmodify[1]
          jname = raw_input('Jail Name (%s):> ' % (jmodify[1]))
          if jname in ['', ' ', '   ']:
             jname = jmodify[1]
@@ -1218,7 +1314,9 @@ def jail_modify(jnid = ''):
          elif jname == "!":
             print "            Iinterrupted by user - !"
             return False
-         else:         
+         else:
+            if base == 1:
+              jname = 'BASE-%s' % jname         
             break
       while True:
          jhostname = raw_input('Jail Hostname (%s):> ' % (jmodify[2]))
@@ -1351,47 +1449,57 @@ def jail_modify(jnid = ''):
          return False
          
       if yn in "yY":
+# list current zfs          
          zfs = subprocess.check_output("zfs list -H -o name", shell=True)
          zfs = zfs.split('\n')
-
+# jail zfs
          zfstest = jzfs + "/" + jname
 
-         if jquota != jmodify[7]:
-            zfs_quota(zfstest, jquota)
-
          if jname != jmodify[1]:
+# check if jail mark as BASE skeleton model   
+            if base == 1:
+               zfstest = jzfs + "/BASE-RW/" + jname
 
             if zfstest in zfs:
-               print "            WARNING: ZFS %s/%s alredy exist!" % (jzfs, jname)
+               print "            WARNING: ZFS %s alredy exist!" % zfstest
                print "            use: If you want you can use it for %s Jail" % (jname)
-               print "            recreate: We can recreate it (ALL EXISTING DATA WILL BE DESTROYED!) and install new jail world inside"
+               print "            replace: We can replace it (ALL EXISTING DATA WILL BE DESTROYED!)"
                print "            ! : Interrupt Jail creation"
   
                while True:
-                  zfsch = raw_input("Enter your choice (use|recreate|!) :> ")
+                  zfsch = raw_input("Enter your choice (use|replace|!) :> ")
   
                   if zfsch == "!":
                      print "            Interrupted by user - !"
                      return False
         
-                  if zfsch == "recreate":
-                     os.system("zfs destroy %s/%s" % (jzfs, jname))
-                     os.system("zfs create %s/%s" % (jzfs, jname))
-                     zfs_quota(jzfs+"/"+jname, jquota)
-                     bdsinstall_src(jpath+jname)
-
-                     print "            Jail %s world was successful recreated for %s%s" % (jname,jpath,jname)
-                     break
-
+                  if zfsch == "replace":
+                     os.system("zfs destroy %s" % zfstest)
+                     
                   if zfsch == "use":
-                     print "            Jail %s will use existing world %s%s" % (jname,jpath,jname)
+                     print "            Jail %s will use existing world %s" % (jname, zfstest)
                      jname = jmodify[1]
                      break 
 
-                  if zfsch not in ['use','recreate','!']:
-                     print "            Please enter only 'use','recreate' or'!'"
+                  if zfsch not in ['use','replace','!']:
+                     print "            Please enter only 'use','replace' or'!'"
                      continue
+            else:
+                  if base == 0:
+                     os.system("zfs rename %s/%s %s" % (jzfs, jmodify[1], zfstest))
+                  if base == 1:
+                     os.system('mv /%s/%s /%s/%s' % (jzfs, jmodify[1],  jzfs,  jname))
+                     os.system("zfs rename %s/BASE-RW/%s %s" % (jzfs, jmodify[1], zfstest))
+                     print "            Jail %s world was successful replaced for %s%s" % (jname,jpath,jname)
 
+# check if quota should be changed
+         if jquota != jmodify[7]:
+# check if jail mark  as BASE skeleton model            
+            if base == 1:
+                zfstest = jzfs + "/BASE-RW/" + jname
+            zfs_quota(zfstest, jquota)
+
+# update jail.conf
          fj = find_jail(jmodify[1])
          jb = fj[0]
          je = fj[1]
@@ -1405,12 +1513,15 @@ def jail_modify(jnid = ''):
          jcl[jb+4] = 'jid = %s;' % (jid)
          jcl[jb+5] = '$jip = "%s";' % (jip)
          jcl[jb+6] = '$jgw = "%s";' % (jgw)
-
+# check if jail mark  as BASE skeleton model and fix mount 'exec.prestart +=' local options
+         if base == 1:
+            jcl[jb+8] = 'exec.prestart += "mount_nullfs -o ro /zfs/jails/BASE /zfs/jails/%s";' % jname
+            jcl[jb+9] =  'exec.prestart += "mount_nullfs -o rw /zfs/jails/BASE-RW/%s /zfs/jails/%s/SROOT";'  % (jname,  jname)
+            jcl[jb+10]  = 'exec.poststop += "umount -f /zfs/jails/%s/SROOT";' % jname
+            jcl[jb+11]   = 'exec.poststop += "umount -f /zfs/jails/%s";' % jname
          jc.write('\n'.join(jcl))
          jc.close()
 
-         if jname != jmodify[1]:
-            os.system("zfs rename %s/%s %s/%s" % (jzfs, jmodify[1], jzfs, jname))
 # prtin and add to log file            
          print " "
          logmsg = "Jail \'%s\' was modified!" % (jmodify[1])
@@ -1952,10 +2063,19 @@ def jail_table(mcmd):
                   one_jail.append(i)
           print tabulate(one_jail, lmen)
           return False
-          
-      jnid = jid_jname(mcmd[1])   
+
+# list jaisl by name/jid
+      jnid = jid_jname(mcmd[1])
       if jnid == False:
          return False
+# list only BASE skeleton jails         
+      if jnid == 'BASE-':
+          for i in jails[7]:
+              if 'BASE-'in i[2]:
+                 one_jail.append(i)
+          print tabulate(one_jail, lmen)
+          return False
+# normal jails         
       if jnid in jails[1]:
          for i in jails[7]:
             if i[2] == jnid: 
@@ -2000,11 +2120,16 @@ def jail_shell(jnid = ''):
 
    if jnid == False:
       return False
+      
 
    if jnid not in jails[1]:
       print "       Jail with name '%s' not found!" % (jnid)
       return False
-   
+
+   if jnid == 'BASE':
+      print "       'BASE' jail cannot be used!"
+      return False
+
    root_sheel = subprocess.check_output("head -n3 /%s/%s/etc/passwd" % (jzfs, jnid) , shell=True).strip('jid')
    root_sheel = root_sheel.split(':')
 # prtin and add to log file            
@@ -2036,7 +2161,12 @@ def jail_local_option(action,  jnid = '',  option = ''):
    if jnid not in jails[1]:
       print "       Jail with name '%s' not found!" % (jnid)
       return False
-  
+
+# masi jaisl if is BASE skeleton model
+   base = 0
+   if 'BASE-' in jnid:
+       base = 1
+
 # find jail local options  
    fj = find_jail(jnid)
    jb = fj[0]
@@ -2047,7 +2177,11 @@ def jail_local_option(action,  jnid = '',  option = ''):
    lmen = ["Number", "### jail local options ### for jail '%s'" % (jnid)]
    jail_local_op = []
    number_local_op = 0
-   for i in jcl[jb+8:je-1]:
+   add_jb = 8
+# check if jaisl is BASE skeleton model
+   if base == 1:
+       add_jb = 12
+   for i in jcl[jb+add_jb:je-1]:
       jail_local_op.append([number_local_op, i])
       number_local_op += 1
          
@@ -2079,7 +2213,7 @@ def jail_local_option(action,  jnid = '',  option = ''):
 
 # write new config with changed jail local option
          jc = open(jailconf, 'w')
-         del jcl[jb+8+int(rmlocal)]
+         del jcl[jb+add_jb+int(rmlocal)]
          jc.write('\n'.join(jcl))
          jc.close()
          print " "
@@ -2093,7 +2227,7 @@ def jail_local_option(action,  jnid = '',  option = ''):
    if action == "add":
          option = ''.join(option) # convert option list in string
        
-         for i in ['=', ';']:
+         for i in [';']:
              if i not in list(option):
                 print "       '%s' is not valid jail local option!" % (option)
                 return False
@@ -2520,7 +2654,7 @@ def skel_model(action, install_path,  jname):
 # Create a skeleton for the read-write portion of the system
        os.system('zfs create %s' % skel_path[1:])
        os.system('zfs create %s' % rw_path[1:])
-       os.system('mkdir %s/home %s/usr-X11R6 %s/distfiles' % (skel_path,  skel_path, skel_path))
+       os.system('mkdir -p %s/home %s/usr-X11R6 %s/distfiles %s/usr-share-keys/pkg' % (skel_path,  skel_path, skel_path, skel_path))
        os.system('mv %s/etc %s' % (install_path, skel_path ))
        os.system('mv %s/usr/local %s/usr-local' % (install_path, skel_path ))
        os.system('mv %s/tmp %s' % (install_path, skel_path ))
@@ -2537,6 +2671,7 @@ def skel_model(action, install_path,  jname):
        os.system('ln -s SROOT/home home')
        os.system('ln -s SROOT/root root')
        os.system('ln -s SROOT/usr-local usr/local')
+       os.system('ln -s SROOT/usr-share-keys usr/share/keys')
        os.system('ln -s SROOT/usr-X11R6 usr/X11R6')
        os.system('ln -s SROOT/distfiles usr/ports/distfiles')
        os.system('ln -s SROOT/tmp tmp')
@@ -2551,9 +2686,10 @@ def skel_model(action, install_path,  jname):
        
 # install SKELETON jail       
    if action == 'install':
-       os.chdir('%s' % install_path)
 # install RW fs for jail
        os.system('zfs send %s/BASE-SKELETON@install | zfs receive -F %s/BASE-RW/%s' % (jzfs,  jzfs, jname))
+# remove receive snapshot        
+       os.system('zfs destroy %s/BASE-RW/%s@install' % (jzfs, jname))
 # create jail local config - mount skel model for jail hosme dir
        temp_add_cfg = ['exec.prestart += "mount_nullfs -o ro /%s/BASE %s";' % (jzfs,  install_path), 'exec.prestart += "mount_nullfs -o rw /%s/BASE-RW/%s %s/SROOT";' % (jzfs, jname,  install_path), \
        'exec.poststop += "umount -f %s/SROOT";' % install_path, 'exec.poststop += "umount -f %s";' % install_path]
@@ -2577,7 +2713,7 @@ class lcmd(cmd.Cmd):
   
    local_global = ['list',  'remove',  'add']
    snap = ['list', 'create',  'remove',  'restore']
-   listcmd = ['list', 'name',  'hostname',  'ip',  'gw',  'active',  'inactive']
+   listcmd = ['list', 'BASE-',  'hostname',  'ip',  'gw',  'active',  'inactive']
 
    def do_log(self,  arg):
       """ Write custom log message in jadm log  file (usage: log 'log message')
@@ -2671,6 +2807,7 @@ class lcmd(cmd.Cmd):
    def do_list(self, arg):
         """ List Jails on the system
          - List Jail by name  (usage: list 'name/jid' )
+         - List BASE skeleton Jails (usage: list BASE- )
          - List Jail by hostname  (usage: list hostname 'jail hostname' )
          - List Jail by ipaddress (usage: list ip 'ipaddress/netmask')
          - List Jails by gateway  (usage: list gw 'gateway ip')
