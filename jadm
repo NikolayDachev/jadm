@@ -1751,7 +1751,7 @@ def initsetup():
             new_config = [config_instructions, '################## Default Settings (DO NOT EDIT THIS SECTION MANUALY) ######################', '$jedir = "/%s/";' % (jzfs), '$bridge = "%s";' % (brid), '$epair = "epair$jid";', '$a = "a";', '$b = "b";', ' ', 'path = "$jedir$name";', 'vnet;', 'vnet.interface = "$epair$b";', \
 'exec.start = "ifconfig lo0 127.0.0.1/8";', 'exec.prestart = "ifconfig $epair create";', 'exec.prestart += "ifconfig $bridge addm $epair$a up";', 'exec.prestart += "ifconfig $epair$a up";', \
 'exec.start += "ifconfig $epair$b $jip";', 'exec.start += "route add default $jgw";', 'exec.start += "/bin/sh /etc/rc";', 'exec.poststop = "ifconfig $bridge deletem $epair$a";', 'exec.poststop += "ifconfig $epair$a destroy";', 'exec.stop = "/bin/sh /etc/rc.shutdown";', \
-'exec.clean;', '####################### End of Default Settings ############################################', '#####################  Jails Global Options (YOU CAN CUSTOMIZE) ############################', 'mount.devfs;', 'allow.mount=1;', '###################### End of Jails Global Options ##########################################', '############################ Jails Settings #################################################', ' ']
+'exec.clean;', '####################### End of Default Settings ############################################', '#####################  Jails Global Options (YOU CAN CUSTOMIZE) ############################', ' ', '###################### End of Jails Global Options ##########################################', '############################ Jails Settings #################################################', ' ']
    
             jc_file.write('\n'.join(new_config))
             jc_file.close()
@@ -2706,9 +2706,6 @@ class lcmd(cmd.Cmd):
 #  interactive main menu with 'cmd' function
 #
    """
-
-   load_jail_config('/etc/jail.conf')
-
    prompt = 'jadm:> '
   
    local_global = ['list',  'remove',  'add']
