@@ -47,7 +47,7 @@ import paramiko
 ########################################################################################
 
 # jadm version
-jadm_version = "ver. 0.87"
+jadm_version = "ver. 0.88"
 
 # jail.conf location by default /etc/jail.conf
 jailconf = '/etc/jail.conf' 
@@ -444,9 +444,24 @@ def bdsinstall_src(install_path,  jname,  choise):
                continue
             else:
                break
-
-         jtemp_file = "jadm_temp_file"
-         tempdir = "/%s" % (jzfs)
+# find jail tamplate local options          
+         fj = find_jail(jtemplate)
+         jb = fj[0]
+         je = fj[1]
+         jcl = fj[2]
+# mark template jails jail for BASE skeleton
+         base = 0
+         if 'BASE-' in jtemplate:
+            jtemplate  = 'BASE-RW/%s' %   jtemplate
+# fix zfs creation before tepmplate type to be selected            
+            os.system('zfs destroy %s/%s' % (jzfs, jname))
+            jname = 'BASE-%s' % jname
+            os.system('mkdir /%s/%s' % (jzfs, jname))
+# make correct install_path in jail.conf            
+            install_path_cfg = '/%s/%s' % (jzfs, jname)
+            temp_add_cfg = ['mount.fstab="/%s/BASE-RW/%s/etc/fstab";' % (jzfs, jname),  'mount.devfs;']
+            install_path = '/%s/BASE-RW/%s' % (jzfs, jname)
+            base = 1
 
          print "       Create temporary snapshot '%s/%s@jadm_template'" % (jzfs, jtemplate)
          os.system('zfs snapshot %s/%s@jadm_template' % (jzfs, jtemplate))
@@ -457,21 +472,26 @@ def bdsinstall_src(install_path,  jname,  choise):
          print "       Destroy temporary snapshots '%s/%s@jadm_template' and '%s@jadm_template'" % (jzfs, jtemplate, install_path[1:])
          os.system('zfs destroy %s/%s@jadm_template' % (jzfs, jtemplate))
          os.system('zfs destroy %s@jadm_template' % (install_path[1:]))
- 
+         
+         print "       Jail envoirment for '%s' was installed as skeleton model from '%s' template" % (jname,  jtemplate)
          print "       Copy '--- additional config ---' from template jail '%s'" % (jtemplate)
-         
-# find jail tamplate local options          
-         fj = find_jail(jtemplate)
-         jb = fj[0]
-         je = fj[1]
-         jcl = fj[2]
-         
+# fix template skeleton model jail fstab
+         if base == 1:
+            os.system('echo \"/%s/BASE /%s/%s nullfs ro 0 0\" > /%s/BASE-RW/%s/etc/fstab' % (jzfs,  jzfs, jname, jzfs, jname))
+            os.system('echo \"/%s/BASE-RW/%s /%s/%s/SROOT nullfs rw 0 0\" >> /%s/BASE-RW/%s/etc/fstab' % (jzfs, jname, jzfs, jname, jzfs,  jname))
+
 # update jail.conf
          jc = open(jailconf, 'r')
+# if template jails jail mark as BASE skeleton         
+         if base == 1:
+             jb = jb + 2
 
          for i in jcl[jb+8:je-1]:
              temp_add_cfg.append(i)
          jc.close()
+# if template jails jail mark as BASE skeleton - last  temp_add_cfg[] = 1 
+         if base == 1:
+             temp_add_cfg.append('1')
          
          return temp_add_cfg
 
@@ -706,7 +726,14 @@ def jail_create():
          if use == 2:
              return False
          if use == 0:
-            temp_add_cfg = bdsinstall_src(jpath+jname,  jname,  install_choise) 
+            temp_add_cfg = bdsinstall_src(jpath+jname,  jname,  install_choise)
+# check if was installed from skleton template
+            if  temp_add_cfg:
+               if  temp_add_cfg[-1] == '1':
+                  jname = 'BASE-%s' % jname
+                  del temp_add_cfg[-1]
+                  skel_quota = '%s/BASE-RW/%s' % (jzfs,  jname)
+                  zfs_quota(skel_quota, jquota)
          if use == 1:
              temp_add_cfg = []
                   
@@ -1133,9 +1160,15 @@ def jail_snapshot(action, jnid = ''):
 
    if jnid in jails[1]:
 
-      if action == "createsnap":
-         dt =  str(datetime.utcnow().isoformat())
+# check current time/date
+      dt =  str(datetime.utcnow().isoformat())
+# check if jail is skeleton based
+      if 'BASE-' in jnid:
+         jzfssnap = "%s/BASE-RW/%s@%s" % (jzfs, jnid, dt)
+      else:
          jzfssnap = "%s/%s@%s" % (jzfs, jnid, dt)
+
+      if action == "createsnap":
          os.system("zfs snapshot "+jzfssnap)
 # print and add to log file            
          print " "
@@ -1515,10 +1548,10 @@ def jail_modify(jnid = ''):
          jcl[jb+6] = '$jgw = "%s";' % (jgw)
 # check if jail mark  as BASE skeleton model and fix mount 'exec.prestart +=' local options
          if base == 1:
-            jcl[jb+8] = 'exec.prestart += "mount_nullfs -o ro /zfs/jails/BASE /zfs/jails/%s";' % jname
-            jcl[jb+9] =  'exec.prestart += "mount_nullfs -o rw /zfs/jails/BASE-RW/%s /zfs/jails/%s/SROOT";'  % (jname,  jname)
-            jcl[jb+10]  = 'exec.poststop += "umount -f /zfs/jails/%s/SROOT";' % jname
-            jcl[jb+11]   = 'exec.poststop += "umount -f /zfs/jails/%s";' % jname
+            os.system('echo \"/%s/BASE /%s/%s nullfs ro 0 0\" > /%s/BASE-RW/%s/etc/fstab' % (jzfs,  jzfs, jname, jzfs, jname))
+            os.system('echo \"/%s/BASE-RW/%s /%s/%s/SROOT nullfs rw 0 0\" >> /%s/BASE-RW/%s/etc/fstab' % (jzfs, jname, jzfs, jname, jzfs,  jname))
+            jcl[jb+8] = 'mount.fstab="/%s/BASE-RW/%s/etc/fstab";' % (jzfs, jname)
+            jcl[jb+9] = 'mount.devfs;'
          jc.write('\n'.join(jcl))
          jc.close()
 
@@ -2180,7 +2213,7 @@ def jail_local_option(action,  jnid = '',  option = ''):
    add_jb = 8
 # check if jaisl is BASE skeleton model
    if base == 1:
-       add_jb = 12
+       add_jb = 10
    for i in jcl[jb+add_jb:je-1]:
       jail_local_op.append([number_local_op, i])
       number_local_op += 1
@@ -2660,7 +2693,6 @@ def skel_model(action, install_path,  jname):
        os.system('mv %s/tmp %s' % (install_path, skel_path ))
        os.system('mv %s/var %s' % (install_path, skel_path ))
        os.system('mv %s/root %s' % (install_path, skel_path ))
-       os.system('mv %s/dev %s' % (install_path, skel_path ))
 # mergemaster to install missing configuration files. Then, remove the the extra directories that mergemaster creates:
 #      os.system('mergemaster -t %s/var/tmp/temproot -D %s -i' % (skel_path,  skel_path))
 #      os.system('rm -R %(key)s/bin %(key)s/boot %(key)s/lib %(key)s/libexec %(key)s/mnt %(key)s/proc %(key)s/rescue %(key)s/sbin %(key)s/sys %(key)s/usr %(key)s/dev' % {'key': skel_path})
@@ -2670,13 +2702,12 @@ def skel_model(action, install_path,  jname):
        os.system('ln -s SROOT/etc etc')
        os.system('ln -s SROOT/home home')
        os.system('ln -s SROOT/root root')
-       os.system('ln -s SROOT/usr-local usr/local')
-       os.system('ln -s SROOT/usr-share-keys usr/share/keys')
-       os.system('ln -s SROOT/usr-X11R6 usr/X11R6')
-       os.system('ln -s SROOT/distfiles usr/ports/distfiles')
+       os.system('ln -s /SROOT/usr-local usr/local')
+       os.system('ln -s /SROOT/usr-share-keys usr/share/keys')
+       os.system('ln -s /SROOT/usr-X11R6 usr/X11R6')
+       os.system('ln -s /SROOT/distfiles usr/ports/distfiles')
        os.system('ln -s SROOT/tmp tmp')
        os.system('ln -s SROOT/var var')
-       os.system('ln -s SROOT/dev dev')
 # Create a generic /home/j/skel/etc/make.conf containing this line
        os.system('echo \"WRKDIRPREFIX?=  /SROOT/portbuild\" > %s/etc/make.conf' % skel_path )
 # Create zfs BASE-SKELETON snapshot which will be used for installation       
@@ -2687,13 +2718,14 @@ def skel_model(action, install_path,  jname):
 # install SKELETON jail       
    if action == 'install':
 # install RW fs for jail
-       os.system('zfs send %s/BASE-SKELETON@install | zfs receive -F %s/BASE-RW/%s' % (jzfs,  jzfs, jname))
+      os.system('zfs send %s/BASE-SKELETON@install | zfs receive -F %s/BASE-RW/%s' % (jzfs,  jzfs, jname))
 # remove receive snapshot        
-       os.system('zfs destroy %s/BASE-RW/%s@install' % (jzfs, jname))
+      os.system('zfs destroy %s/BASE-RW/%s@install' % (jzfs, jname))
 # create jail local config - mount skel model for jail hosme dir
-       temp_add_cfg = ['exec.prestart += "mount_nullfs -o ro /%s/BASE %s";' % (jzfs,  install_path), 'exec.prestart += "mount_nullfs -o rw /%s/BASE-RW/%s %s/SROOT";' % (jzfs, jname,  install_path), \
-       'exec.poststop += "umount -f %s/SROOT";' % install_path, 'exec.poststop += "umount -f %s";' % install_path]
-       return temp_add_cfg
+      os.system('echo \"/%s/BASE /%s/%s nullfs ro 0 0\" > /%s/BASE-RW/%s/etc/fstab' % (jzfs,  jzfs, jname, jzfs, jname))
+      os.system('echo \"/%s/BASE-RW/%s /%s/%s/SROOT nullfs rw 0 0\" >> /%s/BASE-RW/%s/etc/fstab' % (jzfs, jname, jzfs, jname, jzfs,  jname))
+      temp_add_cfg = ['mount.fstab="/%s/BASE-RW/%s/etc/fstab";' % (jzfs, jname),  'mount.devfs;']
+      return temp_add_cfg
        
 
 ########################################################################################
@@ -2818,7 +2850,18 @@ class lcmd(cmd.Cmd):
             arg = [i for i in arg if i != '']
  
         jail_table(arg)
-        
+
+   def do_ls(self,  arg):
+       """
+        - Short ist for Jails (usage: ls)
+       """
+       jails = jails_list()
+       lmen = ["ACTIVE", "JID", "NAME", "HOSTNAME", "IP ADDRESS"]
+       short_jails = []
+       for i in jails[7]:
+           short_jails.append(i[:5])
+       print tabulate(short_jails, lmen)
+       
    def complete_list(self, text, line, begidx, endidx):
 
         if not text:
