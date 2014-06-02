@@ -1,3 +1,5 @@
+IMPORTANT: jail folder should be mounted in the same zfs pool path, example: zroot/jails wshould be mounted to /zroot/jails .. i will try to fix this general bug asap 
+
 JADM is a easy FreeBSD 10 jail framework with /etc/jail.conf, vnet and zfs support 
 
 At the moment is in development process, still alot of functions should be tested and added.
