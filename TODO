@@ -2,9 +2,15 @@ JADM
 
 TO DO list: not in order
 
-1. check for "dying" jail start/stop
+1. check for "dying" jail start/stop (active mark as d)
 2. def() organizations
 3. jadm python comments
-4. skelton jails support - ? 
+4. skelton jails support
+5. BASE jail start/update 
+6. msg fix 
+8. man update/fix
+9. freebsd port update/fix (do not use)
+11. migration skeleton model support 
+12. other 
 ...
 
