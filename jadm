@@ -47,7 +47,7 @@ import paramiko
 ########################################################################################
 
 # jadm version
-jadm_version = "ver. 0.88"
+jadm_version = "ver. 0.88_2"
 
 # jail.conf location by default /etc/jail.conf
 jailconf = '/etc/jail.conf' 
@@ -1818,7 +1818,7 @@ def initsetup():
                    return False
 # check if mount point exitst
               zfsmount = os.path.isdir(jpath)
-              if zfsmount == False:
+              if zfsmount == True:
                  print " "
                  print "      ERROR: %s mount point exist!" % jpath
                  yn = raw_input('use it anyway (yes): ')
@@ -1828,15 +1828,14 @@ def initsetup():
                  else:
                     continue
               else:
+# check if $japth content '/' if not add it
+                 if jpath[0] != '/':
+                    jpath = "/%s" % jpath
+                 if jpath[-1] != '/':
+                    jpath = "%s/" % jpath
                  os.system('zfs set mountpoint=%s %s' % (jpath, jzfs))
                  break
          break
-
-# check if $japth content '/' if not add it
-      if jpath[0] != '/':
-         jpath.insert(0, '/')
-      if jpath[-1] != '/':
-         jpath.append('/')   
 
       print " "      
       set_menu  = ['JADM', 'Settings']
