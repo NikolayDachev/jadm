@@ -47,7 +47,7 @@ import paramiko
 ########################################################################################
 
 # jadm version
-jadm_version = "ver. 0.88_2"
+jadm_version = "ver. 0.88_4"
 
 # jail.conf location by default /etc/jail.conf
 jailconf = '/etc/jail.conf' 
@@ -370,7 +370,7 @@ def jails_list(mas = None,  remote_zfs = 0):
 # soted() return list element with all jails configs ordered by jid
    return  (active, name, jid, ip, gw, hostname, path, sorted(jailscfg,  key=lambda x: int(x[1])))
 
-def bdsinstall_src(install_path,  jname,  choise):
+def bdsinstall_src(install_path_mp, install_path_zfs, jname,  choise):
       """
 ########################################################################################
 # Install jail bsd envoirment in jail path
@@ -383,15 +383,15 @@ def bdsinstall_src(install_path,  jname,  choise):
 
 # Skeleton jail model install
       if choise == 'skel':
-         temp_add_cfg = skel_model('install',  install_path,  jname)
+         temp_add_cfg = skel_model('install',  install_path_mp, install_path_zfs,  jname)
          print " "
          print "      INFO: Jail envoirment for %s was installed as skeleton model from 'BASE' jail" % jname
          return temp_add_cfg
 
 # install new jail with FreeBSD bsdinstall tool
       if choise == 'bsd':
-         os.system("bsdinstall jail %s" % (install_path))
-         jadm_postinstall(install_path)
+         os.system("bsdinstall jail %s" % (install_path_mp))
+         jadm_postinstall(install_path_mp)
          print " "
          print "      INFO: Jail envoirment was installed via 'bsdinstaller'"
          return temp_add_cfg
@@ -411,17 +411,17 @@ def bdsinstall_src(install_path,  jname,  choise):
 
 # install jail with prebuilded src
             if src_choise == "install":
-               os.system("cd /usr/src && make installworld DESTDIR=%s" % (install_path))
-               os.system("cd /usr/src && make distribution DESTDIR=%s" % (install_path))
+               os.system("cd /usr/src && make installworld DESTDIR=%s" % (install_path_mp))
+               os.system("cd /usr/src && make distribution DESTDIR=%s" % (install_path_mp))
                jadm_postinstall(install_path)
                return temp_add_cfg
 
 # first make build world in /usr/src and then install
             if src_choise == "build":
                os.system("cd /usr/src && make buildworld")
-               os.system("cd /usr/src && make installworld DESTDIR=%s" % (install_path))
-               os.system("cd /usr/src && make distribution DESTDIR=%s" % (install_path))
-               jadm_postinstall(install_path)
+               os.system("cd /usr/src && make installworld DESTDIR=%s" % (install_path_mp))
+               os.system("cd /usr/src && make distribution DESTDIR=%s" % (install_path_mp))
+               jadm_postinstall(install_path_mp)
                return temp_add_cfg
             print " "
             print "      INFO: Interrupted by user"
@@ -470,12 +470,12 @@ def bdsinstall_src(install_path,  jname,  choise):
          print "      INSTALL: Create temporary snapshot '%s/%s@jadm_template'" % (jzfs, jtemplate)
          os.system('zfs snapshot %s/%s@jadm_template' % (jzfs, jtemplate))
 
-         print "      INSTALL: Copy '%s/%s@jadm_template' data to '%s'" % (jzfs, jtemplate, install_path[1:])
-         os.system('zfs send %s/%s@jadm_template | zfs recv -F %s' % (jzfs, jtemplate, install_path[1:]))
+         print "      INSTALL: Copy '%s/%s@jadm_template' data to '%s'" % (jzfs, jtemplate, install_path_zfs)
+         os.system('zfs send %s/%s@jadm_template | zfs recv -F %s' % (jzfs, jtemplate, install_path_zfs))
 
-         print "      INSTALL: Destroy temporary snapshots '%s/%s@jadm_template' and '%s@jadm_template'" % (jzfs, jtemplate, install_path[1:])
+         print "      INSTALL: Destroy temporary snapshots '%s/%s@jadm_template' and '%s@jadm_template'" % (jzfs, jtemplate, install_path_zfs)
          os.system('zfs destroy %s/%s@jadm_template' % (jzfs, jtemplate))
-         os.system('zfs destroy %s@jadm_template' % (install_path[1:]))
+         os.system('zfs destroy %s@jadm_template' % (install_path_zfs))
          
          print "      INSTALL: Jail envoirment for '%s' was installed as skeleton model from '%s' template" % (jname,  jtemplate)
          print "      INSTALL: Copy '--- additional config ---' from template jail '%s'" % (jtemplate)
@@ -738,7 +738,7 @@ def jail_create():
              print " "
              print "...  New Jail will be created ... \n"
       new_jail_menu  = ['New Jail', 'Settings']
-      new_jail_settings = [['Name', jname], ['Hostname', jhostname], ['ID', jid], ['IP address', jip], ['Gateway', jgw], ['ZFS', "%s/%s" % (jzfs, jname)], ['ZFS Quota', jquota],  ['Install Source',  install_choise]]
+      new_jail_settings = [['Name', jname], ['Hostname', jhostname], ['ID', jid], ['IP address', jip], ['Gateway', jgw], ['Path', "%s%s" % (jpath, jname)], ['ZFS', "%s/%s" % (jzfs, jname)], ['ZFS Quota', jquota],  ['Install Source',  install_choise]]
       print tabulate(new_jail_settings, new_jail_menu)
 
       yn = raw_input("confirm (y/n):> ")
@@ -760,13 +760,13 @@ def jail_create():
          if use == 2:
              return False
          if use == 0:
-            temp_add_cfg = bdsinstall_src(jpath+jname,  jname,  install_choise)
+            temp_add_cfg = bdsinstall_src(jpath+jname, jzfs+jname,  jname,  install_choise)
 # check if was installed from skleton template
             if  temp_add_cfg:
                if  temp_add_cfg[-1] == '1':
                   jname = 'BASE-%s' % jname
                   del temp_add_cfg[-1]
-                  skel_quota = '%s/BASE-RW/%s' % (jzfs,  jname)
+                  skel_quota = '%s/BASE-RW/%s' % (jpath,  jname)
                   zfs_quota(skel_quota, jquota)
          if use == 1:
              temp_add_cfg = []
@@ -781,7 +781,7 @@ def jail_create():
          jc.close()
          
          if jname == 'BASE':
-             skel_model('init',  jpath+jname,  jname)
+             skel_model('init',  jpath+jname, jzfs+'/'+jname,  jname)
          
          print " "
          logmsg = "      INFO: Jail \'%s\' was successful created!" % (jname)
@@ -803,18 +803,22 @@ def jail_crete_zfs(jname,  jquota):
    if 'BASE-' in jname:
        if os.path.isdir('%s%s' % (jpath, jname)) == False:
            os.system("mkdir %s%s" % (jpath, jname))
-           use = 0
-           skel_quota = '%s/BASE-RW/%s' % (jzfs,  jname)
-           os.system('zfs create %s' % skel_quota)
-           zfs_quota(skel_quota, jquota)
+           use = 0 
+           skel_quota_zfs = '%s/BASE-RW/%s' % (jzfs,  jname)
+           skel_quota_mp = '/%s/BASE-RW/%s/' % (jpath,  jname)
+           os.system('zfs create %s' % skel_quota_zfs)
+	   os.system('zfs set mountpoint=%s %s' % (skel_quota_mp, skel_quota_zfs))
+           zfs_quota(skel_quota_zfs, jquota)
            return use
    
    zfs = subprocess.check_output("zfs list -H -o name", shell=True)
    zfs = zfs.split('\n')
          
    zfstest = jzfs + "/" + jname
+   zfstest_mp = jpath + jname
+
    if zfstest in zfs:
-      print "      WARNING: ZFS %s/%s alredy exist!" % (jzfs, jname)
+      print "      WARNING: ZFS %s alredy exist!" % (zfstest)
       print "             - (use): If you want you can use it for %s Jail" % (jname)
       print "             - (recreate): We can recreate it (ALL EXISTING DATA WILL BE DESTROYED!) and install new jail world inside"
       print "             - (!) : Interrupt Jail creation"
@@ -829,15 +833,16 @@ def jail_crete_zfs(jname,  jquota):
                   break
 
                if zfsch == "recreate":
-                  os.system("zfs destroy %s/%s" % (jzfs, jname))
-                  os.system("zfs create %s/%s" % (jzfs, jname))
+                  os.system("zfs destroy %s" % (zfstest))
+                  os.system("zfs create %s" % (zfstest))
+		  os.system('zfs set mountpoint=%s %s' % (zfstest_mp, zfstest))
                   zfs_quota(zfstest, jquota)
                   use = 0
                   break
 
                if zfsch == "use":
                   print " "
-                  print "      WARNING: Jail %s will use existing world %s%s" % (jname,jpath,jname)
+                  print "      WARNING: Jail %s will use existing world %s" % (jname,zfstest_mp)
                   use = 1
                   break
 
@@ -847,7 +852,8 @@ def jail_crete_zfs(jname,  jquota):
                   continue
                             
    if zfstest not in zfs:
-       os.system("zfs create %s/%s" % (jzfs, jname))
+       os.system("zfs create %s" % (zfstest))
+       os.system('zfs set mountpoint=%s %s' % (zfstest_mp, zfstest))
        zfs_quota(zfstest, jquota)
        use = 0
    return use
@@ -2759,15 +2765,18 @@ def migrate(jnid, remote = '',  ssh_pass = ''):
 #  close ssh connection
    ssh.close()
 
-def skel_model(action, install_path,  jname):
+def skel_model(action, install_path_mp, install_path_zfs,  jname):
    """
 ########################################################################################
 #  install skeleton jail model
 #
    """
  # init vars
-   skel_path = '%s-SKELETON' % install_path
-   rw_path = '%s-RW' % install_path
+ # mp - mount point, zfs - zfs point
+   skel_path_mp = '%s-SKELETON' % install_path_mp
+   skel_path_zfs = '%s-SKELETON' % install_path_zfs
+   rw_path_mp = '%s-RW' % install_path_mp
+   rw_path_zfs = '%s-RW' % install_path_zfs
    
    if action == 'init':
 # create SKELETON MODEL
@@ -2775,19 +2784,22 @@ def skel_model(action, install_path,  jname):
        print " "
        print "      Init BASE-SKELETON zfs START..."
 # Create a skeleton for the read-write portion of the system
-       os.system('zfs create %s' % skel_path[1:])
-       os.system('zfs create %s' % rw_path[1:])
-       os.system('mkdir -p %s/home %s/usr-X11R6 %s/distfiles %s/usr-share-keys/pkg' % (skel_path,  skel_path, skel_path, skel_path))
-       os.system('mv %s/etc %s' % (install_path, skel_path ))
-       os.system('mv %s/usr/local %s/usr-local' % (install_path, skel_path ))
-       os.system('mv %s/tmp %s' % (install_path, skel_path ))
-       os.system('mv %s/var %s' % (install_path, skel_path ))
-       os.system('mv %s/root %s' % (install_path, skel_path ))
+       os.system('zfs create %s' % skel_path_zfs)
+       os.system('zfs set mountpoint=%s %s' % (skel_path_mp, skel_path_zfs))
+       os.system('zfs create %s' % rw_path_zfs)
+       os.system('zfs set mountpoint=%s %s' % (rw_path_mp, rw_path_zfs))
+
+       os.system('mkdir -p %s/home %s/usr-X11R6 %s/distfiles %s/usr-share-keys/pkg' % (skel_path_mp,  skel_path_mp, skel_path_mp, skel_path_mp))
+       os.system('mv %s/etc %s' % (install_path_mp, skel_path_mp ))
+       os.system('mv %s/usr/local %s/usr-local' % (install_path_mp, skel_path_mp ))
+       os.system('mv %s/tmp %s' % (install_path_mp, skel_path_mp ))
+       os.system('mv %s/var %s' % (install_path_mp, skel_path_mp ))
+       os.system('mv %s/root %s' % (install_path_mp, skel_path_mp ))
 # mergemaster to install missing configuration files. Then, remove the the extra directories that mergemaster creates:
 #      os.system('mergemaster -t %s/var/tmp/temproot -D %s -i' % (skel_path,  skel_path))
 #      os.system('rm -R %(key)s/bin %(key)s/boot %(key)s/lib %(key)s/libexec %(key)s/mnt %(key)s/proc %(key)s/rescue %(key)s/sbin %(key)s/sys %(key)s/usr %(key)s/dev' % {'key': skel_path})
 # Now, symlink the read-write file system to the read-only file system. Ensure that the symlinks are created in the correct s/ locations as the creation of directories in the wrong locations will cause the installation to fail.
-       os.chdir('%s' % install_path)
+       os.chdir('%s' % install_path_mp)
        os.system('mkdir SROOT')
        os.system('ln -s SROOT/etc etc')
        os.system('ln -s SROOT/home home')
@@ -2799,9 +2811,9 @@ def skel_model(action, install_path,  jname):
        os.system('ln -s SROOT/tmp tmp')
        os.system('ln -s SROOT/var var')
 # Create a generic /home/j/skel/etc/make.conf containing this line
-       os.system('echo \"WRKDIRPREFIX?=  /SROOT/portbuild\" > %s/etc/make.conf' % skel_path )
+       os.system('echo \"WRKDIRPREFIX?=  /SROOT/portbuild\" > %s/etc/make.conf' % skel_path_mp )
 # Create zfs BASE-SKELETON snapshot which will be used for installation       
-       os.system('zfs snapshot %s@install' % skel_path[1:])
+       os.system('zfs snapshot %s@install' % skel_path_zfs)
        print "      Init BASE-SKELETON zfs FINISH..."
        print " "
        
