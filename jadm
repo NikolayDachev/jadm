@@ -77,10 +77,7 @@ def initcheck():
    check_jailconf = os.path.isfile(jailconf)
    if check_jailconf == False:
 # print and add to log file            
-      print " "
-      logmsg = "'/etc/jail.conf not exist initsetup will be started...' "
-      print " "
-      print logmsg
+      logmsg = "      WARNING: /etc/jail.conf not exist initsetup will be started..."
       log(logmsg)  
  
       initsetup()
@@ -1720,7 +1717,7 @@ def initsetup():
    for x in bridges_sys:
       bripadd = netifaces.ifaddresses(x)[netifaces.AF_INET]
       for i in bripadd:
-         br_interface.append([' ', ' ', i['addr'], i['netmask']])
+         br_interface.append([gw_number, x, i['addr'], i['netmask']])
          gw_ipaddr.append(i['addr'])
          br_count = br_count + 1
       br_interface[br_count - 1][1] = x 
