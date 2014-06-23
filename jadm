@@ -99,13 +99,19 @@ def def_vars():
    for i in jc:
       jchek.append(i)
 
-# find default zfs var
+# find default jail path var
    for i in jchek:
       if "$jedir" in i:
          bi = i.index('"')
          jzfs = i[bi:-2]
          jpath = jzfs[1:-1]
-         jzfs = jzfs[2:-2]
+         break
+
+# find default jail path zfs var
+   for i in jchek:
+      if "$jzfs" in i:
+         bi = i.index('"')
+         jzfs = i[bi+1:-3]
          break
 
 # find default bridge var
@@ -454,11 +460,11 @@ def bdsinstall_src(install_path,  jname,  choise):
 # fix zfs creation before tepmplate type to be selected            
             os.system('zfs destroy %s/%s' % (jzfs, jname))
             jname = 'BASE-%s' % jname
-            os.system('mkdir /%s/%s' % (jzfs, jname))
+            os.system('mkdir %s%s' % (jpath, jname))
 # make correct install_path in jail.conf            
-            install_path_cfg = '/%s/%s' % (jzfs, jname)
-            temp_add_cfg = ['mount.fstab="/%s/BASE-RW/%s/etc/fstab";' % (jzfs, jname),  'mount.devfs;']
-            install_path = '/%s/BASE-RW/%s' % (jzfs, jname)
+            install_path_cfg = '%s%s' % (jpath, jname)
+            temp_add_cfg = ['mount.fstab="%sBASE-RW/%s/etc/fstab";' % (jpath, jname),  'mount.devfs;']
+            install_path = '%sBASE-RW/%s' % (jpath, jname)
             base = 1
          print " "
          print "      INSTALL: Create temporary snapshot '%s/%s@jadm_template'" % (jzfs, jtemplate)
@@ -475,8 +481,8 @@ def bdsinstall_src(install_path,  jname,  choise):
          print "      INSTALL: Copy '--- additional config ---' from template jail '%s'" % (jtemplate)
 # fix template skeleton model jail fstab
          if base == 1:
-            os.system('echo \"/%s/BASE /%s/%s nullfs ro 0 0\" > /%s/BASE-RW/%s/etc/fstab' % (jzfs,  jzfs, jname, jzfs, jname))
-            os.system('echo \"/%s/BASE-RW/%s /%s/%s/SROOT nullfs rw 0 0\" >> /%s/BASE-RW/%s/etc/fstab' % (jzfs, jname, jzfs, jname, jzfs,  jname))
+            os.system('echo \"%sBASE %s%s nullfs ro 0 0\" > %sBASE-RW/%s/etc/fstab' % (jpath,  jpath, jname, jpath, jname))
+            os.system('echo \"%sBASE-RW/%s %s%s/SROOT nullfs rw 0 0\" >> %sBASE-RW/%s/etc/fstab' % (jpath, jname, jpath, jname, jpath,  jname))
 
 # update jail.conf
          jc = open(jailconf, 'r')
@@ -795,8 +801,8 @@ def jail_crete_zfs(jname,  jquota):
    """
 # check if is skeleton jail and make folder - do not make ZFS
    if 'BASE-' in jname:
-       if os.path.isdir('/%s/%s' % (jzfs, jname)) == False:
-           os.system("mkdir /%s/%s" % (jzfs, jname))
+       if os.path.isdir('%s%s' % (jpath, jname)) == False:
+           os.system("mkdir %s%s" % (jpath, jname))
            use = 0
            skel_quota = '%s/BASE-RW/%s' % (jzfs,  jname)
            os.system('zfs create %s' % skel_quota)
@@ -1106,7 +1112,7 @@ def jail_destroy(action, jnid = ''):
             jc.close()
 # check if is skeleton jails
             if 'BASE-' in jnid:
-                os.system("rmdir /%s/%s" % (jzfs, jnid))
+                os.system("rmdir %s%s" % (jpath, jnid))
                 jnid = 'BASE-RW/%s' % jnid
             os.system("zfs destroy -r %s/%s" % (jzfs, jnid))
     
@@ -1578,7 +1584,7 @@ def jail_modify(jnid = ''):
                   if base == 0:
                      os.system("zfs rename %s/%s %s" % (jzfs, jmodify[1], zfstest))
                   if base == 1:
-                     os.system('mv /%s/%s /%s/%s' % (jzfs, jmodify[1],  jzfs,  jname))
+                     os.system('mv %s%s %s%s' % (jpath, jmodify[1],  jpath,  jname))
                      os.system("zfs rename %s/BASE-RW/%s %s" % (jzfs, jmodify[1], zfstest))
                      print " "
                      print "      INFO: Jail %s world was successful replaced for %s%s" % (jname,jpath,jname)
@@ -1606,9 +1612,9 @@ def jail_modify(jnid = ''):
          jcl[jb+6] = '$jgw = "%s";' % (jgw)
 # check if jail mark  as BASE skeleton model and fix mount 'exec.prestart +=' local options
          if base == 1:
-            os.system('echo \"/%s/BASE /%s/%s nullfs ro 0 0\" > /%s/BASE-RW/%s/etc/fstab' % (jzfs,  jzfs, jname, jzfs, jname))
-            os.system('echo \"/%s/BASE-RW/%s /%s/%s/SROOT nullfs rw 0 0\" >> /%s/BASE-RW/%s/etc/fstab' % (jzfs, jname, jzfs, jname, jzfs,  jname))
-            jcl[jb+8] = 'mount.fstab="/%s/BASE-RW/%s/etc/fstab";' % (jzfs, jname)
+            os.system('echo \"%sBASE %s%s nullfs ro 0 0\" > %sBASE-RW/%s/etc/fstab' % (jpath,  jpath, jname, jpath, jname))
+            os.system('echo \"%sBASE-RW/%s %s%s/SROOT nullfs rw 0 0\" >> %sBASE-RW/%s/etc/fstab' % (jpath, jname, jpath, jname, jpath,  jname))
+            jcl[jb+8] = 'mount.fstab="%sBASE-RW/%s/etc/fstab";' % (jpath, jname)
             jcl[jb+9] = 'mount.devfs;'
          jc.write('\n'.join(jcl))
          jc.close()
@@ -1729,7 +1735,7 @@ def initsetup():
    print " "
 
    yn = raw_input("continue (y/n):> ")
-   if yn in "nN":
+   if yn not in "Yy":
       print "      INFO: Interrupted by user"
 
       check_jailconf = os.path.isfile(jailconf)
@@ -1786,6 +1792,14 @@ def initsetup():
          if jzfs in zfs:
             print " "
             print "      INFO: We will use existing zpool/tank: %s" % (jzfs)
+            jpath = subprocess.check_output('zfs list -H -o mountpoint %s' % jzfs, shell = True)
+            jpath = jpath.strip('\n')
+# check if exsiting zfs tank have mount point   
+            if jpath == 'none':
+                print " "
+                print "      WARNING: '%s' have '%s' for mount point" % (jzfs, jpath)
+                print "      WARNING: Please create mount point for '%s' or select different zroot/tank" % jzfs
+                continue            
             break
     
          if os.WEXITSTATUS(os.system("zfs create %s" % (jzfs))) != 0:
@@ -1793,36 +1807,52 @@ def initsetup():
              print "      ERROR: Please enter correct zfs!"
              continue
          else:
-             break
-          
+             while True:
+              jpath = raw_input("%s mount point:> " % (jzfs))
+              if jzfs == "!":
+                print " "
+                print "      INFO: Interrupted by user"
+                check_jailconf = os.path.isfile(jailconf)
+                if check_jailconf == False:
+                   sys.exit(0)
+                   return False
+# check if mount point exitst
+              zfsmount = os.path.isdir(jpath)
+              if zfsmount == False:
+                 print " "
+                 print "      ERROR: %s mount point exist!" % jpath
+                 yn = raw_input('use it anyway (yes): ')
+                 if 'yes' in yn:
+                    os.system('zfs set mountpoint=%s %s' % (jpath, jzfs))
+                    break
+                 else:
+                    continue
+              else:
+                 os.system('zfs set mountpoint=%s %s' % (jpath, jzfs))
+                 break
+         break
+
+# check if $japth content '/' if not add it
+      if jpath[0] != '/':
+         jpath.insert(0, '/')
+      if jpath[-1] != '/':
+         jpath.append('/')   
+
       print " "      
       set_menu  = ['JADM', 'Settings']
-      bz = [["Bridge interface:", brid], ["Main zfs:", jzfs]]
+      bz = [["Bridge interface:", brid], ["Main zfs:", jzfs], ["Jadm path:", jpath]]
       print tabulate(bz, set_menu)
 
-      while True:
-         yn = raw_input("... Please confirm JADM settings (y/n): ")
-        
-         if yn in "nN":
-            print " "
-            print "      INFO: Interrupted by user"
-            check_jailconf = os.path.isfile(jailconf)
-            if check_jailconf == False:
-               sys.exit(0)
-
-            return False
-         
-         if yn in "yY":
-            check_jailconf = os.path.isfile(jailconf)
-            if check_jailconf == True:
-               dt = datetime.now().strftime("%d_%m_%y_%I%M%S")
-               os.system("cp %s %s" % (jailconf, jailconf+"."+dt))
-               print " "
-               print "      INFO: '%s' exist we make a backup: %s" % (jailconf, jailconf+"."+dt)
+      check_jailconf = os.path.isfile(jailconf)
+      if check_jailconf == True:
+          dt = datetime.now().strftime("%d_%m_%y_%I%M%S")
+          os.system("cp %s %s" % (jailconf, jailconf+"."+dt))
+          print " "
+          print "      INFO: '%s' exist we make a backup: %s" % (jailconf, jailconf+"."+dt)
                
-            jc_file = open(jailconf, 'w+')
+      jc_file = open(jailconf, 'w+')
             
-            config_instructions = ("""
+      config_instructions = ("""
 #############################################################################################
 # This file was generated by JADM %s in order to be manipulated properly by it.
 # Please do not edit Defauls Settings section manualy or JADM will manipulated it wrong! 
@@ -1846,18 +1876,18 @@ def initsetup():
 # 9. end jail config with wavy bracket
 #############################################################################################
             """) % (jadm_version)
-            new_config = [config_instructions, '################## Default Settings (DO NOT EDIT THIS SECTION MANUALY) ######################', '$jedir = "/%s/";' % (jzfs), '$bridge = "%s";' % (brid), '$epair = "epair$jid";', '$a = "a";', '$b = "b";', ' ', 'path = "$jedir$name";', 'vnet;', 'vnet.interface = "$epair$b";', \
+      new_config = [config_instructions, '################## Default Settings (DO NOT EDIT THIS SECTION MANUALY) ######################','$jzfs = "%s";' % (jzfs), '$jedir = "%s";' % (jpath), '$bridge = "%s";' % (brid), '$epair = "epair$jid";', '$a = "a";', '$b = "b";', ' ', 'path = "$jedir$name";', 'vnet;', 'vnet.interface = "$epair$b";', \
 'exec.start = "ifconfig lo0 127.0.0.1/8";', 'exec.prestart = "ifconfig $epair create";', 'exec.prestart += "ifconfig $bridge addm $epair$a up";', 'exec.prestart += "ifconfig $epair$a up";', \
 'exec.start += "ifconfig $epair$b $jip";', 'exec.start += "route add default $jgw";', 'exec.start += "/bin/sh /etc/rc";', 'exec.poststop = "ifconfig $bridge deletem $epair$a";', 'exec.poststop += "ifconfig $epair$a destroy";', 'exec.stop = "/bin/sh /etc/rc.shutdown";', \
 'exec.clean;', '####################### End of Default Settings ############################################', '#####################  Jails Global Options (YOU CAN CUSTOMIZE) ############################', ' ', '###################### End of Jails Global Options ##########################################', '############################ Jails Settings #################################################', ' ']
    
-            jc_file.write('\n'.join(new_config))
-            jc_file.close()
+      jc_file.write('\n'.join(new_config))
+      jc_file.close()
             
 # print and add to log file            
-            logmsg = "      INFO: New '%s' was created!" % (jailconf)
-            log(logmsg)  
-            return False
+      logmsg = "      INFO: New '%s' was created!" % (jailconf)
+      log(logmsg)  
+      return False
 
 def setup():
    """
@@ -2060,9 +2090,7 @@ def setup():
    print " "
    
 # print and add to log file            
-   print " "
    logmsg = "WARNING: Jadm SETUP was modified"
-   print logmsg
    log(logmsg)     
 
    jail_start_stop('start', 'all') # start ALL jail befor other action
@@ -2224,7 +2252,7 @@ def jail_shell(jnid = ''):
       print "       'BASE' jail cannot be used!"
       return False
 
-   root_sheel = subprocess.check_output("head -n3 /%s/%s/etc/passwd" % (jzfs, jnid) , shell=True).strip('jid')
+   root_sheel = subprocess.check_output("head -n3 %s%s/etc/passwd" % (jpath, jnid) , shell=True).strip('jid')
    root_sheel = root_sheel.split(':')
 # prtin and add to log file            
    print " "
@@ -2426,6 +2454,8 @@ def log(string):
 # usage: log('log string or var')
 #
     """
+    print " "
+    print string
 
 # data and time
     dt = datetime.now().strftime("%b %d %H:%M:%S")
@@ -2440,8 +2470,6 @@ def log(string):
 # applay string to log file
     string = "%s %s jadm: %s" % (dt, os.uname()[1],  string)
     os.system("echo '%s' >> %s" % (string,  logfile))
-    print " "
-    print "      %s" % string
 
 def migrate(jnid, remote = '',  ssh_pass = ''):
    """
@@ -2785,9 +2813,9 @@ def skel_model(action, install_path,  jname):
 # remove receive snapshot        
       os.system('zfs destroy %s/BASE-RW/%s@install' % (jzfs, jname))
 # create jail local config - mount skel model for jail hosme dir
-      os.system('echo \"/%s/BASE /%s/%s nullfs ro 0 0\" > /%s/BASE-RW/%s/etc/fstab' % (jzfs,  jzfs, jname, jzfs, jname))
-      os.system('echo \"/%s/BASE-RW/%s /%s/%s/SROOT nullfs rw 0 0\" >> /%s/BASE-RW/%s/etc/fstab' % (jzfs, jname, jzfs, jname, jzfs,  jname))
-      temp_add_cfg = ['mount.fstab="/%s/BASE-RW/%s/etc/fstab";' % (jzfs, jname),  'mount.devfs;']
+      os.system('echo \"%sBASE %s%s nullfs ro 0 0\" > %sBASE-RW/%s/etc/fstab' % (jpath,  jpath, jname, jpath, jname))
+      os.system('echo \"%sBASE-RW/%s %s%s/SROOT nullfs rw 0 0\" >> %sBASE-RW/%s/etc/fstab' % (jpath, jname, jpath, jname, jpath,  jname))
+      temp_add_cfg = ['mount.fstab="%sBASE-RW/%s/etc/fstab";' % (jpath, jname),  'mount.devfs;']
       return temp_add_cfg
        
 
@@ -3062,6 +3090,7 @@ initcheck()
 
 # load default jadm varibles
 def_vars()
+
 
 # main menu shell
 lcmd().cmdloop()
