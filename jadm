@@ -319,6 +319,9 @@ def jails_list(mas = None,  remote_zfs = 0):
 # check if jail is active or inactive
    caj = subprocess.check_output("jls -h jid", shell=True).strip('jid')
    caj = caj.split('\n')
+# check for 'dying' jails
+   caj_dying = subprocess.check_output("jls -d -h jid", shell=True).strip('jid') 
+   caj_dying = caj_dying.split('\n')
    
 # convert active/inactive results to 1 or 0 which displayed in jadm list table   
    for i in jails(mas):
@@ -328,6 +331,8 @@ def jails_list(mas = None,  remote_zfs = 0):
          active.append('1')
       else:
          act = 0
+         if mas[i + 4] in caj_dying:
+	    act = 'dying'
          active.append('1')
 
 # check jail snapshot number
@@ -437,7 +442,7 @@ def bdsinstall_src(install_path_mp, install_path_zfs, jname,  choise):
          jail_table('1')
 
          while True:
-            jtemplate = raw_input("enater jail name:> ")
+            jtemplate = raw_input("enter jail name:> ")
             if jtemplate == '!':
                print "      INFO: Interrupted by user"
                return False
@@ -760,7 +765,7 @@ def jail_create():
          if use == 2:
              return False
          if use == 0:
-            temp_add_cfg = bdsinstall_src(jpath+jname, jzfs+jname,  jname,  install_choise)
+            temp_add_cfg = bdsinstall_src(jpath+jname, jzfs+'/'+jname,  jname,  install_choise)
 # check if was installed from skleton template
             if  temp_add_cfg:
                if  temp_add_cfg[-1] == '1':
@@ -805,7 +810,7 @@ def jail_crete_zfs(jname,  jquota):
            os.system("mkdir %s%s" % (jpath, jname))
            use = 0 
            skel_quota_zfs = '%s/BASE-RW/%s' % (jzfs,  jname)
-           skel_quota_mp = '/%s/BASE-RW/%s/' % (jpath,  jname)
+           skel_quota_mp = '%sBASE-RW/%s/' % (jpath,  jname)
            os.system('zfs create %s' % skel_quota_zfs)
 	   os.system('zfs set mountpoint=%s %s' % (skel_quota_mp, skel_quota_zfs))
            zfs_quota(skel_quota_zfs, jquota)
@@ -1117,10 +1122,11 @@ def jail_destroy(action, jnid = ''):
             jc.write('\n'.join(jcl))
             jc.close()
 # check if is skeleton jails
+            os.system("rmdir %s%s" % (jpath, jnid))
             if 'BASE-' in jnid:
-                os.system("rmdir %s%s" % (jpath, jnid))
-                jnid = 'BASE-RW/%s' % jnid
+                 jnid = 'BASE-RW/%s' % jnid
             os.system("zfs destroy -r %s/%s" % (jzfs, jnid))
+            
     
             logmsg = "      INFO: Jail '%s' was destroyed!" % (jnid)
             log(logmsg)
@@ -1358,14 +1364,14 @@ def jail_modify(jnid = ''):
        base = 1
 
    if jnid in jails[1]:
-
+      print jails[2]
       while True:
          print " "
          print "      WARNING: Jail '%s' should be stopped!" % (jnid)
-         yn = raw_input("stop '%s' jail (y/n):> " % jnid)
-         if yn in "nN":
+         yn = raw_input("stop '%s' jail (y):> " % jnid)
+         if yn not in "yY" or yn in ['', ' ', '	']:
             return False
-         if yn in "yY":
+         else:
 # print and add to log file            
              logmsg = "      INFO: modify jail> Jadm stop jail '%s'" % (jnid)
              log(logmsg)  
@@ -1672,6 +1678,7 @@ def help():
          - List Jails by gateway  (usage: list gw 'gateway ip')
          - List Actvie Jails      (usage: list active)
          - List Inactive Jails    (usage: list inactive)
+	 - List Dying Jails	  (usage: list dying)
     local - Jails local options
           - List Jail local options   (usage: local list 'name/jid' )
           - Remove Jail local options (usage: local remove 'name/jid' )
@@ -2187,6 +2194,12 @@ def jail_table(mcmd):
       if mcmd[1] ==  "inactive":
           for i in jails[7]:
               if i[0] == 0:
+                  one_jail.append(i)
+          print tabulate(one_jail, lmen)
+          return False
+      if mcmd[1] ==  "dying":
+          for i in jails[7]:
+              if i[0] == 'dying':
                   one_jail.append(i)
           print tabulate(one_jail, lmen)
           return False
@@ -2844,7 +2857,7 @@ class lcmd(cmd.Cmd):
   
    local_global = ['list',  'remove',  'add']
    snap = ['list', 'create',  'remove',  'restore']
-   listcmd = ['list', 'BASE-',  'hostname',  'ip',  'gw',  'active',  'inactive']
+   listcmd = ['list', 'BASE-',  'hostname',  'ip',  'gw',  'active',  'inactive', 'dying']
 
    def do_log(self,  arg):
       """ Write custom log message in jadm log  file (usage: log 'log message')
@@ -2944,6 +2957,7 @@ class lcmd(cmd.Cmd):
          - List Jails by gateway  (usage: list gw 'gateway ip')
          - List Actvie Jails      (usage: list active)
          - List Inactive Jails    (usage: list inactive)
+         - List Dying Jails    (usage: list dying)
         """
         arg = str(arg).split(' ') 
       
