@@ -47,7 +47,7 @@ import paramiko
 ########################################################################################
 
 # jadm version
-jadm_version = "ver. 0.88_4"
+jadm_version = "ver. 0.88_5"
 
 # jail.conf location by default /etc/jail.conf
 jailconf = '/etc/jail.conf' 
@@ -328,12 +328,11 @@ def jails_list(mas = None,  remote_zfs = 0):
 
       if mas[i + 4] in caj:
          act = 1
-         active.append('1')
       else:
          act = 0
          if mas[i + 4] in caj_dying:
 	    act = 'dying'
-         active.append('1')
+      active.append(act)
 
 # check jail snapshot number
       zfs_snap = 0
@@ -1364,31 +1363,37 @@ def jail_modify(jnid = ''):
        base = 1
 
    if jnid in jails[1]:
-      print jails[2]
-      while True:
-         print " "
-         print "      WARNING: Jail '%s' should be stopped!" % (jnid)
-         yn = raw_input("stop '%s' jail (y):> " % jnid)
-         if yn not in "yY" or yn in ['', ' ', '	']:
-            return False
-         else:
+      if jail_isrun(jnid) == 1:
+         while True:
+            print " "
+            print "      WARNING: Jail '%s' should be stopped!" % (jnid)
+            yn = raw_input("stop '%s' jail (y):> " % jnid)
+            if yn not in "yY" or yn in ['', ' ', '	']:
+               return False
+            else:
 # print and add to log file            
-             logmsg = "      INFO: modify jail> Jadm stop jail '%s'" % (jnid)
-             log(logmsg)  
-             os.system("jail -r %s" % jnid)
-             break
+               logmsg = "      INFO: modify jail> Jadm stop jail '%s'" % (jnid)
+               log(logmsg)  
+               os.system("jail -r %s" % jnid)
+               break
+
+      if jail_isrun(jnid) == 'dying':
+         print " "
+         print "      WARNING: Jail '%s' dying at the moment!" % (jnid)
+         return False
 
       for i in jails[-1]:
          if i[2] == jnid:
             jmodify = i
             del jmodify[0]
-      print "       Jail '%s' settings" % (jmodify[1])
-      print " "
+      print "----------------------------------------------------"
+      print "-      Modify '%s' settings" % (jmodify[1])
+      print "----------------------------------------------------"
       
       while True:
          if base == 1:
              print " "
-             print "      ERROR: %s is BASE skleton jail please enter name without 'BASE-' string" % jmodify[1]
+             print "      INFO: %s is BASE skleton jail please enter name without 'BASE-' string" % jmodify[1]
          jname = raw_input('Jail Name (%s):> ' % (jmodify[1]))
          if jname in ['', ' ', '   ']:
             jname = jmodify[1]
@@ -1543,7 +1548,7 @@ def jail_modify(jnid = ''):
    while True:
       print " "
       mod_jail_menu  = ['Jail', 'Old Settings', 'New Settings']
-      mod_jail_settings = [['Name', jmodify[1], jname], ['Hostname', jmodify[2], jhostname, ], ['ID', jmodify[0], jid], ['IP address', jmodify[3], jip], ['Gateway', jmodify[4], jgw], ['ZFS', "%s/%s" % (jzfs, jmodify[1]) , "%s/%s" % (jzfs, jname)], ['ZFS Quota', jmodify[7], jquota]]
+      mod_jail_settings = [['Name', jmodify[1], jname], ['Hostname', jmodify[2], jhostname, ], ['ID', jmodify[0], jid], ['IP address', jmodify[3], jip], ['Gateway', jmodify[4], jgw], ['Path', "%s%s" % (jpath, jmodify[1]) , "%s%s" % (jpath, jname)], ['ZFS', "%s/%s" % (jzfs, jmodify[1]) , "%s/%s" % (jzfs, jname)], ['ZFS Quota', jmodify[7], jquota]]
       print tabulate(mod_jail_settings, mod_jail_menu)
       print " "
       yn = raw_input("confirm (y/n):> ")
@@ -1567,7 +1572,7 @@ def jail_modify(jnid = ''):
             if zfstest in zfs:
                print " "
                print "      WARNING: ZFS %s alredy exist!" % zfstest
-               print "             - (use): If you want you can use it for %s Jail" % (jname)
+               print "             - (use): If you want you can use it for %s" % (jname)
                print "             - (replace): We can replace it (ALL EXISTING DATA WILL BE DESTROYED!)"
                print "             - (!): Interrupt Jail creation"
   
@@ -1580,7 +1585,13 @@ def jail_modify(jnid = ''):
                      return False
         
                   if zfsch == "replace":
+		     exist_zfs_mp = []
+		     for i in subprocess.check_output("zfs list -o mountpoint %s" % (zfstest), shell=True).split('\n'):
+		        exist_zfs_mp.append(i)
+  
                      os.system("zfs destroy %s" % zfstest)
+		     os.system("rm -rf %s" % (exist_zfs_mp[1]))
+		     break
                      
                   if zfsch == "use":
                      print " "
@@ -1595,9 +1606,13 @@ def jail_modify(jnid = ''):
             else:
                   if base == 0:
                      os.system("zfs rename %s/%s %s" % (jzfs, jmodify[1], zfstest))
+ 		     os.system("zfs set mountpoint=%s%s %s" % (jpath, jname, zfstest))
+		     os.system("rm -rf %s%s" % (jpath, jmodify[1]))
                   if base == 1:
                      os.system('mv %s%s %s%s' % (jpath, jmodify[1],  jpath,  jname))
                      os.system("zfs rename %s/BASE-RW/%s %s" % (jzfs, jmodify[1], zfstest))
+                     os.system("zfs set mountpoint=%s/BASE-RW/%s %s" % (jpath, jname, zfstest))
+                     os.system("rm -rf %s/BASE-RW/%s" % (jpath, jmodify[1]))
                      print " "
                      print "      INFO: Jail %s world was successful replaced for %s%s" % (jname,jpath,jname)
 
@@ -2841,7 +2856,28 @@ def skel_model(action, install_path_mp, install_path_zfs,  jname):
       os.system('echo \"%sBASE-RW/%s %s%s/SROOT nullfs rw 0 0\" >> %sBASE-RW/%s/etc/fstab' % (jpath, jname, jpath, jname, jpath,  jname))
       temp_add_cfg = ['mount.fstab="%sBASE-RW/%s/etc/fstab";' % (jpath, jname),  'mount.devfs;']
       return temp_add_cfg
-       
+
+def jail_isrun(jnid):
+   """
+########################################################################################
+# check if jail is mark as active (only for one jail)
+# 0 - notactive
+# 1 - active
+# dying - dying
+   """
+   
+   j = jid_jname(jnid)
+   jname_list = jails_list()[1]
+   jactive = jails_list()[0]
+
+   if j in jname_list:
+      jsearch = jname_list.index(j)
+      result = jactive[jsearch]
+   else:
+      result = '0'
+
+   return result
+  
 
 ########################################################################################
 # MAIN MENU
@@ -3115,7 +3151,6 @@ initcheck()
 
 # load default jadm varibles
 def_vars()
-
 
 # main menu shell
 lcmd().cmdloop()
