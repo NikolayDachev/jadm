@@ -47,7 +47,7 @@ import paramiko
 ########################################################################################
 
 # jadm version
-jadm_version = "ver. 0.88_5"
+jadm_version = "ver. 0.88_6"
 
 # jail.conf location by default /etc/jail.conf
 jailconf = '/etc/jail.conf' 
@@ -468,7 +468,7 @@ def bdsinstall_src(install_path_mp, install_path_zfs, jname,  choise):
 # make correct install_path in jail.conf            
             install_path_cfg = '%s%s' % (jpath, jname)
             temp_add_cfg = ['mount.fstab="%sBASE-RW/%s/etc/fstab";' % (jpath, jname),  'mount.devfs;']
-            install_path = '%sBASE-RW/%s' % (jpath, jname)
+            install_path_zfs = '%s/BASE-RW/%s' % (jzfs, jname)
             base = 1
          print " "
          print "      INSTALL: Create temporary snapshot '%s/%s@jadm_template'" % (jzfs, jtemplate)
@@ -2288,16 +2288,11 @@ def jail_shell(jnid = ''):
    root_sheel = subprocess.check_output("head -n3 %s%s/etc/passwd" % (jpath, jnid) , shell=True).strip('jid')
    root_sheel = root_sheel.split(':')
 # prtin and add to log file            
-   print " "
-   logmsg = "Enter in '%s' Jail!" % (jnid)
-   print logmsg
+   logmsg = "      INFO: Enter in '%s' Jail!" % (jnid)
    log(logmsg)   
 
    os.system ("jexec %s %s" % (jnid, root_sheel[-1]))
-# prtin and add to log file            
-   print " "
-   logmsg = "Exit from '%s' Jail!" % (jnid)
-   print logmsg
+   logmsg = "      INFO: Exit from '%s' Jail!" % (jnid)
    log(logmsg)   
 
 def jail_local_option(action,  jnid = '',  option = ''):
