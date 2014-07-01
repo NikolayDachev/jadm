@@ -47,7 +47,7 @@ import paramiko
 ########################################################################################
 
 # jadm version
-jadm_version = "ver. 0.88_6"
+jadm_version = "ver. 0.88_7"
 
 # jail.conf location by default /etc/jail.conf
 jailconf = '/etc/jail.conf' 
@@ -701,7 +701,7 @@ def jail_create():
    print "          - (bsd) use bdsinstaller"
    print "          - (src) install from  bsd sources /usr/src/ this will take a more time for installation"
    print "          - (skel) use jail skeleton model - jail with name 'BASE' should exist for"
-   print "          - jail BASE skeleton folder, this jail will have name BASE_jailname"
+   print "          jail BASE skeleton folder, this jail will have name BASE_jailname"
    print "          - (!) - for interupt"
 
    while True:
@@ -712,7 +712,7 @@ def jail_create():
          return False
       if install_choise not in chlist:
          print " "
-         print "      ERROR: type only (template), (bsd), (src) or (!)"
+         print "      ERROR: type only (template), (bsd), (src), (skel) or (!)"
          continue
       break
 # Check if BASE jail exist
@@ -1603,19 +1603,17 @@ def jail_modify(jnid = ''):
                      print " "
                      print "      ERROR: Please enter only (use),(replace)' or (!)"
                      continue
-            else:
-                  if base == 0:
-                     os.system("zfs rename %s/%s %s" % (jzfs, jmodify[1], zfstest))
- 		     os.system("zfs set mountpoint=%s%s %s" % (jpath, jname, zfstest))
-		     os.system("rm -rf %s%s" % (jpath, jmodify[1]))
-                  if base == 1:
-                     os.system('mv %s%s %s%s' % (jpath, jmodify[1],  jpath,  jname))
-                     os.system("zfs rename %s/BASE-RW/%s %s" % (jzfs, jmodify[1], zfstest))
-                     os.system("zfs set mountpoint=%s/BASE-RW/%s %s" % (jpath, jname, zfstest))
-                     os.system("rm -rf %s/BASE-RW/%s" % (jpath, jmodify[1]))
-                     print " "
-                     print "      INFO: Jail %s world was successful replaced for %s%s" % (jname,jpath,jname)
-
+            
+            if base == 0:
+               os.system("zfs rename %s/%s %s" % (jzfs, jmodify[1], zfstest))
+ 	       os.system("zfs set mountpoint=%s%s %s" % (jpath, jname, zfstest))
+	       os.system("rm -rf %s%s" % (jpath, jmodify[1]))
+            if base == 1:
+               os.system("zfs rename %s/BASE-RW/%s %s" % (jzfs, jmodify[1], zfstest))
+               os.system("zfs set mountpoint=%sBASE-RW/%s %s" % (jpath, jname, zfstest))
+               os.system("rm -rf %sBASE-RW/%s" % (jpath, jmodify[1]))
+	       os.system("rm -rf %s%s" % (jpath, jmodify[1]))
+      
 # check if quota should be changed
          if jquota != jmodify[7]:
 # check if jail mark  as BASE skeleton model            
@@ -3045,23 +3043,26 @@ class lcmd(cmd.Cmd):
        arg = str(arg).split(' ')
        arg = [i for i in arg if i != '']
 
-       if arg[0] == 'list':
-          if len(arg) == 2: 
-             jail_local_option('list',  arg[1])
+       if len(arg) > 0:
+          if arg[0] == 'list':
+             if len(arg) == 2: 
+                jail_local_option('list',  arg[1])
+             else:
+                print "       Please enter \'help local\' for valid commands!"  
+          elif arg[0] == 'add':
+             if len(arg) >= 3:
+                jail_local_option('add',  arg[1],  arg[2:])
+             else:
+                print "       Please enter \'help local\' for valid commands!"  
+          elif arg[0] == 'remove':
+             if len(arg) >= 2:
+                jail_local_option('rm',  arg[1])
+             else:
+                print "       Please enter \'help local\' for valid commands!"  
           else:
-             print "       Please enter \'help local\' for valid commands!"  
-       if arg[0] == 'add':
-          if len(arg) >= 3:
-             jail_local_option('add',  arg[1],  arg[2:])
-          else:
-             print "       Please enter \'help local\' for valid commands!"  
-             
-       if arg[0] == 'remove':
-          if len(arg) >= 2:
-             jail_local_option('rm',  arg[1])
-          else:
-             print "       Please enter \'help local\' for valid commands!"  
-                             
+             print "       Please enter \'help local\' for valid commands!"
+       else:
+          print "       Please enter \'help local\' for valid commands!"
 
    def complete_local(self, text, line, begidx, endidx):
 
@@ -3083,21 +3084,26 @@ class lcmd(cmd.Cmd):
        arg = str(arg).split(' ')
        arg = [i for i in arg if i != '']
 
-       if arg[0] == 'list':
-          if len(arg) == 1: 
-             jail_global_option('list',  arg)
+       if len(arg) > 0:
+          if arg[0] == 'list':
+             if len(arg) == 1: 
+                jail_global_option('list',  arg)
+             else:
+                print "       Please enter \'help global\' for valid commands!"  
+          elif arg[0] == 'add':
+             if len(arg) >= 2:
+                jail_global_option('add',  arg[1:])
+             else:
+                print "       Please enter \'help global\' for valid commands!"  
+          elif arg[0] == 'remove':
+             if len(arg) >= 1:
+                jail_global_option('rm')
+             else:
+                print "       Please enter \'help global\' for valid commands!"
           else:
-             print "       Please enter \'help global\' for valid commands!"  
-       if arg[0] == 'add':
-          if len(arg) >= 2:
-             jail_global_option('add',  arg[1:])
-          else:
-             print "       Please enter \'help global\' for valid commands!"  
-       if arg[0] == 'remove':
-          if len(arg) == 1:
-             jail_global_option('rm')
-          else:
-             print "       Please enter \'help global\' for valid commands!"            
+             print "       Please enter \'help global\' for valid commands!" 
+       else:
+           print "       Please enter \'help global\' for valid commands!"            
         
    def complete_global(self, text, line, begidx, endidx):
 
