@@ -894,6 +894,17 @@ def jail_start_stop(action, jnid = ''):
                    log(logmsg)  
                    continue
 
+# check if jail is running
+               if jail_isrun(i) == 1:
+                  print " "
+                  print "      INFO: start all> Jail '%s' is already started" % (i)
+                  continue 
+
+               if jail_isrun(i) == 'dying':
+                  print " "
+                  print "      INFO: start all> Jail '%s' is mark as dying please try later" % (i)
+                  continue
+
 # print and add to log file 
                logmsg = "      INFO: start all> Jadm start jail: '%s'" % (i)
                log(logmsg)   
@@ -910,6 +921,18 @@ def jail_start_stop(action, jnid = ''):
 
          elif yn in "yY":
             for i in jails[1]:
+
+# check if jail is stopped
+               if jail_isrun(i) == 0:
+                  print " "
+                  print "      INFO: stop all> Jail '%s' is already stopped" % (i)
+                  continue
+
+               if jail_isrun(i) == 'dying':
+                  print " "
+                  print "      INFO: stop all> Jail '%s' is mark as dying please try later" % (i)
+                  continue
+
 # print and add to log file            
                logmsg = "      INFO: stop all> Jadm stop jail: '%s'" % (i)
                log(logmsg)  
@@ -936,6 +959,20 @@ def jail_start_stop(action, jnid = ''):
                    logmsg = "      INFO: reboot all> '%s' mark as 'BASE' jadm will not reboot it!" % (i)
                    log(logmsg)  
                    continue
+     
+# check if jail is stopped
+               if jail_isrun(jnid) == 0:
+                  continue
+
+               os.system("jail -r %s" % jnid)
+
+               if jail_isrun(jnid) == 'dying':
+                  print " "
+                  print "      INFO: reboot all> Jail '%s' is mark as dying please try later" % (jnid)
+                  continue
+
+               os.system("jail -c %s" % jnid)
+
 # print and add to log file            
                logmsg = "      INFO: reboot all> Jadm reboot jail: '%s'" % (i)
                log(logmsg)  
@@ -966,12 +1003,24 @@ def jail_start_stop(action, jnid = ''):
       return False
 
    if jnid in jails[1]:
+
       if action == "start":
+# check if jail is running
+         if jail_isrun(jnid) == 1:
+            print " "
+            print "      INFO: Jail '%s' is already started" % (jnid)
+            return False
+
+         if jail_isrun(jnid) == 'dying':
+            print " "
+            print "      INFO: Jail '%s' is mark as dying please try later" % (jnid)
+            return False
+
          yn = raw_input("Start jail '%s' (y):> " % (jnid))
          if yn in "nN":
             return False
          
-         elif yn in "yY": 
+         elif yn in "yY":
 # print and add to log file            
              logmsg = "      INFO: start> Jadm start jail '%s'" % (jnid)
              log(logmsg)  
@@ -979,6 +1028,17 @@ def jail_start_stop(action, jnid = ''):
              os.system("jail -c %s" % jnid)
 
       elif action == "stop":
+# check if jail is stopped
+         if jail_isrun(jnid) == 0:
+            print " "
+            print "      INFO: Jail '%s' is already stopped" % (jnid)
+            return False
+                   
+         if jail_isrun(jnid) == 'dying':
+            print " "
+            print "      INFO: Jail '%s' is mark as dying please try later" % (jnid)
+            return False
+
          yn = raw_input("Stop jail '%s' (y):> " % (jnid))
          if yn in "nN":
             return False
@@ -996,11 +1056,28 @@ def jail_start_stop(action, jnid = ''):
             return False
 
          elif yn in "yY":
-# print and add to log file            
-             logmsg = "      INFO: reboot> Jadm reboot jail '%s'" % (jnid)
-             log(logmsg)  
+# check if jail is stopped
+            if jail_isrun(jnid) == 0:
+               print " "
+               print "      INFO: Jail '%s' is already stopped" % (jnid)
+               os.system("jail -c %s" % jnid)
+# print and add to log file
+               logmsg = "      INFO: reboot> Jadm reboot jail '%s'" % (jnid)
+               log(logmsg)
+               return False
 
-             os.system("jail -rc %s" % jnid)
+            os.system("jail -r %s" % jnid)
+
+            if jail_isrun(jnid) == 'dying':
+               print " "
+               print "      INFO: Jail '%s' is mark as dying please try later" % (jnid)
+               return False
+
+            os.system("jail -c %s" % jnid)
+
+# print and add to log file
+            logmsg = "      INFO: reboot> Jadm reboot jail '%s'" % (jnid)
+            log(logmsg) 
             
          else:
             print " "
