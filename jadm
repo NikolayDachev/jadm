@@ -41,7 +41,6 @@ import netifaces
 import cmd
 import paramiko
 
-
 ########################################################################################
 # Main config vars:
 ########################################################################################
@@ -1734,7 +1733,7 @@ def jail_modify(jnid = ''):
 
          return False
 
-def help():
+def help(s):
    """
 ########################################################################################
 # show help how to use jadm
@@ -1751,7 +1750,7 @@ def help():
     introduction - This help information
     log - Write custom log message in jadm log  file (usage: log 'log message')
     about - About JADM
-    exit - exit from JADM
+    exit or quit - exit from JADM
    
     create - Create new Jail
     destroy - Destroy existing Jail and delete Jail data/zfs (usage: destroy 'jailname or jid')
@@ -3007,7 +3006,13 @@ class lcmd(cmd.Cmd):
         """ Exit from JADM shell
         """
         print "Good bye!"
-        sys.exit(1)
+        sys.exit(0)
+
+   def do_quit(self, arg):
+        """ Exit from JADM shell
+        """
+        print "Good bye!"
+        sys.exit(0)
 
    def do_create(self, arg):
         """ Create new Jail
@@ -3242,20 +3247,66 @@ class lcmd(cmd.Cmd):
             log(logmsg) 
             
         
+def welcome():
+   '''
+       print welcome info on startup
+   '''
+    
+   jails = jails_list()
+   
+   welmsg = '''
+FreeBSD jail framework with vnet, zfs and jail.conf support.
+This application is still in development, use it on your own risk.
+Please check license agreement with "about" command
+Check "help" and "introduction" commands how to use it
+   '''  
 
+   lmenu = ['FreeBSD', 'Hostname', 'Uptime', 'Jails', 'Active',  'Version']
+
+   hostname = os.uname()[1]
+   opsys = os.uname()[2]
+# check how many jails we have
+# remove BASE jail if exist
+   jailNumbers = len(jails[0])
+   if 'BASE' in jails[1]:
+       jailNumbers = jailNumbers - 1
+# check actvie jails number 
+   act = []
+   for a in jails[0]:
+       if a == 1:
+        act.append(a)
+   activeJails =  len(act)
+# check system uptime
+   proc = subprocess.Popen('uptime', stdout=subprocess.PIPE)
+   output = proc.stdout.read()
+   uptime = output.split()[2][:-1]
+
+   hostInfo = [[opsys,  hostname, uptime, jailNumbers, activeJails,  jadm_version[4:]]]
+   print ""
+   print "Welcome to JADM (jail admin) framework"
+   print ""
+   print tabulate(hostInfo, lmenu)
+   print welmsg
 
 ########################################################################################
 # Start Jadm script
 ########################################################################################
-
-# check for existing bridge and zfs 
-initcheck()
+try:
+   # check for existing bridge and zfs 
+   initcheck()
 
 # load default jadm varibles
-def_vars()
+   def_vars()
 
-# main menu shell
-lcmd().cmdloop()
+   # welcome
+   welcome()
+
+   # main menu shell
+   lcmd().cmdloop()
+   
+except Exception as e:
+    logmsg = "      CRITICAL ERROR: %s" % e
+    log(logmsg)
 
 ########################################################################################
 # End Jadm script 
