@@ -2813,7 +2813,6 @@ def migrateServer (servClient,  host,  port,  jnid):
            tjspace = float(r_jzfs[:-1]) 
            tjspace = bytesto(tjspace, r_jzfs[-1])
 # test space  
-           print float(tjspace),  float(tfree)
            if float(tjspace) >  float(tfree):
                 notes[5] = "no space [required: %s]['%s' available: %s]" % (r_jzfs,  jzfs,  zfsfree)
            else:
@@ -2840,6 +2839,9 @@ def migrateServer (servClient,  host,  port,  jnid):
            
            print tabulate(recv_jail_settings, recv_jail_menu)
            print ''
+           if 'no space' in notes[5]:
+               log('       ERROR: '+ notes[5])
+               return False
            
         except OSError:
            log("       WARNING: jadm server was stopped!")
@@ -3607,7 +3609,7 @@ mb= 300002347.946
    a = {'K' : 1, 'M': 2, 'G' : 3, 'T' : 4, 'P' : 5, 'E' : 6 }
    r = float(bytes)
    for i in range(a[to]):
-      r = r / bsize
+      r = r * bsize
 
    return(r)
    
