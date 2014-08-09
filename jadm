@@ -1733,7 +1733,7 @@ def jail_modify(jnid = ''):
 
          return False
 
-def help(s):
+def help():
    """
 ########################################################################################
 # show help how to use jadm
