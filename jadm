@@ -3717,7 +3717,7 @@ mb= 300002347.946
 ########################################################################################
 #try:
    # check for existing bridge and zfs 
-   initcheck()
+initcheck()
 
 # load default jadm varibles
 def_vars()
