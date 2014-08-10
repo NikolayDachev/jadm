@@ -2702,7 +2702,7 @@ def aes(data, secret ,encdec):
       decoded = DecodeAES(cipher, data)
       return decoded
 
-def migrateServer (servClient,  host,  port,  secret,  jnid,):
+def migrateServer (servClient,  host,  port,  secret,  jnid, sshPassword):
     '''
        migrate jail via socket server
     '''
@@ -2710,12 +2710,20 @@ def migrateServer (servClient,  host,  port,  secret,  jnid,):
     
     if host == 'None':
         host = LHOST
+    else:
+# user / hostname
+        ssh_host = host.split('@')
+        host = ssh_host[1]
+        sshUser = ssh_host[0]
+        
     if port == 'None':
         port = LPORT
+
 #
 # JADM CLIENT
 #
     if servClient == 'client':
+
 # chekc jail name/id
       try:
          int(jnid) == True
@@ -2753,6 +2761,23 @@ def migrateServer (servClient,  host,  port,  secret,  jnid,):
       except ValueError:
             log("       ERROR: jadm client> '%s' is not valid network port" % port)
             return False
+# CHECK SSH KEY LOGIN
+      try:
+         ssh = paramiko.SSHClient()
+         ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+         ssh.connect(host, username= sshUser,  password=sshPassword)
+         sftp = ssh.open_sftp()
+      except paramiko.AuthenticationException:
+         log("       ERROR: jadm client> Authentication failed when connecting to '%s'" % host)
+         print "       ERROR:  jadm client> jadm will not be able to transfer ZFS"
+         return False
+      except:
+         log("       ERROR:  jadm client> Could not SSH to host: '%s'" % host)
+         print "       ERROR:  jadm client> jadm will not be able to transfer ZFS"
+         return False
+      log("       INFO:  jadm client> successful ssh connection to host: '%s'" % host)
+
+
 # star send data
       try:
          print ''
@@ -2760,11 +2785,12 @@ def migrateServer (servClient,  host,  port,  secret,  jnid,):
          print cmsg
          print '       %s' % ('-' * len(cmsg[7:]))
          log("       INFO: jadm client> send '%s' jail config to host: '%s' on port: '%s'" % (jnid,  host,  port))
-
-         jn = jails[1].index(jnid)
+# get jail config
          sendData = []
-         for i in jails[7][jn + 1]:
-             sendData.append(str(i))
+         for mj in jails[7]:
+            if mj[2] == jnid:
+               for i in mj:
+                  sendData.append(str(i))
          sendData.append('closeconn')
 # jadm client
          cmsg = jadm_client(host,  int(port),  secret, sendData)
@@ -2772,6 +2798,56 @@ def migrateServer (servClient,  host,  port,  secret,  jnid,):
          
       except (KeyboardInterrupt,  OSError):
          log("       WARNING: jadm client> migration was stopped!")
+
+#
+# TRASNFER ZFS SNAP VIA SSH
+#
+# get remote jail.conf
+# write remote jail.conf file to /tmp temp file
+      jailconf_remote = '/tmp/%s_jail.conf' % host
+      sftp.get('/etc/jail.conf',  jailconf_remote)
+# overite default jailconf var.
+      jailconf_remote = '/tmp/%s_jail.conf' % host
+      log("       INFO: '%s' jail.conf was saved as: %s" % (host, jailconf_remote))
+
+# remote jails config
+      rjails_c = load_jail_config(jailconf_remote)
+      remote_jails = jails_list(rjails_c, remote_zfs = 1)
+
+# search default remote host zfs home
+      for i in open(jailconf_remote,  'r'):
+         if "$jzfs" in i:
+            r_zfs_home = i.replace('$jzfs =', '' ).replace(';', '').replace(' ', '').replace('"', '').strip('\n')
+            break
+            
+# create temp snapshot
+      temp_snapshot = "%s/%s@%s" % (jzfs, jnid, host)
+      try:
+         subprocess.check_output("zfs snapshot -r %s" % temp_snapshot, shell=True)
+      except:
+         subprocess.check_output("zfs destroy %s" % temp_snapshot, shell=True)
+         subprocess.check_output("zfs snapshot -r %s" % temp_snapshot, shell=True)
+# check log() msg for more information
+      log("       INFO: jadm client>'%s' tempoary snapshot was created" % temp_snapshot)
+      log("       INFO: jadm client> copy '%s' tempoary snapshot to '%s:%s/%s' via ssh in progress ..." % (temp_snapshot, host,  r_zfs_home, jnid))
+
+      subprocess.check_output('zfs send %s |ssh %s@%s sudo zfs receive -F %s/%s' % (temp_snapshot, sshUser,  host, r_zfs_home, jnid), shell=True)
+      log("       INFO: jadm client> copy '%s' tempoary snapshot to %s cmplete!" % (temp_snapshot, host))
+      subprocess.check_output("zfs destroy %s" % temp_snapshot, shell=True)
+      log("       INFO: jadm client> '%s' tempoary snapshot was destroyed" % temp_snapshot)
+      log("       INFO: jadm client> Jail '%s' ZFS was migrated to host '%s' " %  (jnid,  host))
+#close ssh connection
+      sftp.close()
+      ssh.close()
+# send confirmation for complete ZFS transfer
+      try:
+         cmsg = jadm_client(host,  int(port),  secret, ['zfscomplete',  'closecon'])
+         log(cmsg)
+      except (KeyboardInterrupt,  OSError):
+         log("       WARNING: jadm client> migration was stopped!")
+# CLIENT END
+      log("       INFO: jadm client>  Jail '%s' migration to host '%s' was completed, please check remote JADM" %  (jnid,  host))
+      return False
      
 #
 # JADM SERVER
@@ -2792,7 +2868,6 @@ def migrateServer (servClient,  host,  port,  secret,  jnid,):
         recvData = False
 # Enter AES encrypt password
 # password aways should be 16 symbols
-        secret = raw_input('jadm server password:> ')
         if len(secret) < 16:
            toadd = 16 - len(secret)
         while toadd != 0:
@@ -2802,18 +2877,18 @@ def migrateServer (servClient,  host,  port,  secret,  jnid,):
         if len(secret) > 16:
            secret = secret[:16]
 
-        log('       INFO: jadm server bind: %s:%s' % (LHOST,  LPORT))
-        print'       INFO: jadm server password: %s' % secret
+        log('       INFO: jadm server> jadm server bind: %s:%s' % (LHOST,  LPORT))
+        print'       INFO: jadm server> jadm server password: %s' % secret
         print ''
         print "       INFO: 'CTL + c' to stop jadm server"
 # Received  jail config
         try:
            recvData = jadm_server(host, int(port),  secret)
            if  recvData == False:
-               log("       WARNING: jadm server was stopped!")
+               log("       WARNING: jadm server> jadm server was stopped!")
                return False
                
-           logmsg = '       INFO: jadm receive config for jail: %s' % recvData[2]
+           logmsg = '       INFO: jadm server> jadm receive config for jail: %s' % recvData[2]
            log(logmsg)
            print '       %s' % ('-' * len(logmsg[7:]))
            print ''
@@ -2920,12 +2995,34 @@ def migrateServer (servClient,  host,  port,  secret,  jnid,):
                return False
            
         except (KeyboardInterrupt,  OSError):
-           log("       WARNING: jadm server was stopped!")
-
+           log("       WARNING: jadm server> jadm server was stopped!")
+           return False
+# wait for zfs confirmation transfer
+        log("       INFO: jadm server> Waiting '%s' to complete zfs transfer for jail '%s'" % (host,  jnid))
+        try:
+            recvData = jadm_server(host, int(port),  secret)
+        except (KeyboardInterrupt,  OSError):
+           log("       WARNING: jadm server> jadm server was stopped!")
+           return False
+        log("       INFO: jadm server> Zfs transfer from '%s' successful complete for jail '%s'" % (host,  jnid)) 
+# append new jail to jails.conf
+        log("       INFO: jadm server> Append '%s' jail to $s" % (host,  jailconf))
+        dt = str(datetime.now())
+        newjail = [' \n', jname, '{', "# Jail '%s' was received from '%s' on by ... JADM ..." % (jname, host,dt), 'host.hostname = %s;' % (jhostname), 'jid = %s;' % (jid), '$jip = "%s";' % (jip), '$jgw = "%s";' % (jgw), '### jail local options ###', '}']
+        jc = open(jailconf, 'a')
+        jc.write('\n'.join(newjail)) 
+        jc.close()
+        log("       INFO: jadm server> New jail '%s' was successful transfered from %s" % (jname,  host))
+        
+# print warnings
+        if notes[3] != 'OK':
+            log("       WARNING: jadm server> please check received jail '%s' ip address before start to use it!" % jname)
+        if notes[4] != 'OK':
+             log("       WARNING: jadm server> please check received jail '%s' gateway before start to use it!" % jname)
+             
         return False
         
         
-
 def migrate(jnid, remote = '',  ssh_pass = ''):
    """
 ########################################################################################
@@ -3200,6 +3297,7 @@ def migrate(jnid, remote = '',  ssh_pass = ''):
                  
              print "   '%s' tempoary snapshot was created" % temp_snapshot
              print "   ... moving '%s' tempoary snapshot to %s in process ..." % (temp_snapshot, ssh_host[1])
+             
              subprocess.check_output("zfs send %s |ssh %s sudo zfs receive -F %s%s" % (temp_snapshot, remote, r_zfs_home[1:], jnid), shell=True)
              print "   ... moving '%s' tempoary snapshot to %s cmplete!" % (temp_snapshot, ssh_host[1])
              subprocess.check_output("zfs destroy %s" % temp_snapshot, shell=True)
@@ -3581,25 +3679,29 @@ class lcmd(cmd.Cmd):
    def do_migrate(self, arg):
         """ Migrate jail from current system to remote system with socket server (AES encrypted)
         server usage:
-           migrate server (ip address: def *) (port: def 4555)
+           migrate server (ip address: def *) (port: def 4555) (server password)
             - password for AES encription must be exactly 16 symbols if not jadm will add '0'
         client usage:
-           migrate client (remote host/ip) (remote port) (server password) (jailname/id)
+           migrate client (remote user@host/ip) (remote port) (ssh password)  (server password) (jailname/id)
         """ 
         arg = str(arg).split(' ')
         arg = [i for i in arg if i != '']
 
-        if len(arg) >= 1:
+        if len(arg) >= 2:
            if arg[0] == 'server':
                if len(arg) == 3:
-                  migrateServer(arg[0],  arg[1],  arg[2],  'None',  'None')
-               elif len(arg) == 1:
-                   migrateServer(arg[0],  'None',  'None',  'None',  'None')
+                  migrateServer(arg[0],  arg[1],  arg[2],  arg[3],  'None',  'None')
+               elif len(arg) == 2:
+                   migrateServer(arg[0],  'None',  'None', arg[1] ,  'None',  'None')
                else:
                   print "       Please enter \'help migrate\' for valid commands!" 
+                  
            elif arg[0] == 'client':
-               if len(arg) == 5:
-                   migrateServer(arg[0],  arg[1],  arg[2],  arg[3],  arg[4])
+               if len(arg) == 6:
+                   if '@' in arg[1]:
+                      migrateServer(arg[0],  arg[1],  arg[2],  arg[4],  arg[5],  arg[3])
+                   else:
+                      print "       Please enter \'help migrate\' for valid commands!" 
                else:
                   print "       Please enter \'help migrate\' for valid commands!" 
            else:
