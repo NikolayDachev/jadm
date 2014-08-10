@@ -190,6 +190,9 @@ def bridge(gwc = 0, brc = bridge_int):
      gw_number = gw_number + 1
   br_interface[0][1] = bridge_int
 
+  if gwc == 'check':
+      return (br_interface, gw_ipaddr, gw_network)
+
 # print jadm gateways  table
   br_menu = ["Number", "Bridge name", "Gateway IP Address", "Gatewy Network Mask"]
   print tabulate(br_interface, br_menu)
@@ -2603,7 +2606,7 @@ def log(string):
     string = "%s %s jadm: %s" % (dt, os.uname()[1],  string)
     os.system("echo '%s' >> %s" % (string,  logfile))
 
-def jadm_server(LHOST, LPORT,  secret,  type):
+def jadm_server(LHOST, LPORT,  secret):
     '''
        recv aes encypted data
     '''
@@ -2624,27 +2627,23 @@ def jadm_server(LHOST, LPORT,  secret,  type):
     
     
 # REC text list (jail config)
-    if type == 'jconfig':
-       mig_jailconf = []
-       while True:
+    mig_jailconf = []
+    while True:
 # REC
-         data = conn.recv(1024)
+      data = conn.recv(1024)
 # DEC
-         decData = aes(data, secret, 'dec')
-         mig_jailconf.append(decData)
+      decData = aes(data, secret, 'dec')
+      mig_jailconf.append(decData)
           
-         if 'closeconn' in decData:
-            s.shutdown(socket.SHUT_RDWR)
-            s.close()
-            mig_jailconf[-1] = addr[0]
-            return mig_jailconf
-         conn.send(data)
+      if 'closeconn' in decData:
+         s.shutdown(socket.SHUT_RDWR)
+         s.close()
+         mig_jailconf[-1] = addr[0]
+         return mig_jailconf
+      conn.send(data)
          
-# REC binary  (zfs)
-    if  type == 'zfs':
-        print 'zfs'
 
-def jadm_client(HOST, PORT, secret,  sendData,  type):
+def jadm_client(HOST, PORT, secret,  sendData):
     '''
        send aes encrypted data
     '''
@@ -2661,21 +2660,15 @@ def jadm_client(HOST, PORT, secret,  sendData,  type):
 
 # ENC and SEND
 # send jail config
-    if type == 'jconfig':
-       for i in sendData:
-          encData = aes(i, secret, 'enc')
-          cs.send(encData)
-          encData = cs.recv(1024)
+    for i in sendData:
+       encData = aes(i, secret, 'enc')
+       cs.send(encData)
+       encData = cs.recv(1024)
           
-       cs.shutdown(socket.SHUT_RDWR)
-       cs.close()
-       return "       INFO: jadm client> transfer to '%s' was finished" % HOST
+    cs.shutdown(socket.SHUT_RDWR)
+    cs.close()
+    return "       INFO: jadm client> transfer to '%s' was finished" % HOST
        
-       
-#send jail ZFS
-    if type == 'zfs':
-        print 'send zfs'
-
 def aes(data, secret ,encdec):
    '''
       Original src: http://www.codekoala.com/posts/aes-encryption-python-using-pycrypto/
@@ -2774,7 +2767,7 @@ def migrateServer (servClient,  host,  port,  secret,  jnid,):
              sendData.append(str(i))
          sendData.append('closeconn')
 # jadm client
-         cmsg = jadm_client(host,  int(port),  secret, sendData,  'jconfig')
+         cmsg = jadm_client(host,  int(port),  secret, sendData)
          log(cmsg)
          
       except (KeyboardInterrupt,  OSError):
@@ -2815,7 +2808,7 @@ def migrateServer (servClient,  host,  port,  secret,  jnid,):
         print "       INFO: 'CTL + c' to stop jadm server"
 # Received  jail config
         try:
-           recvData = jadm_server(host, int(port),  secret,  'jconfig')
+           recvData = jadm_server(host, int(port),  secret)
            if  recvData == False:
                log("       WARNING: jadm server was stopped!")
                return False
@@ -2827,29 +2820,30 @@ def migrateServer (servClient,  host,  port,  secret,  jnid,):
            notes = [0,  1,  2,  3,  4,  5 , 6 , 7]
 # check for duplicated name
            r_jname = recvData[2]
+           jname = r_jname
+           notes[0] = 'OK'           
            for i in jails[1]:
                if r_jname == i:
                    jname = 'dup_'+r_jname
                    notes[0] = "jail with name '%s' exist" % r_jname
                    break
-               else:
-                   jname = r_jname
-                   notes[0] = 'OK'
 # check for duplicated hostname
            r_jhostname = recvData[3]
+           jhostname = r_jhostname
+           notes[1] = 'OK'
            for i in jails[5]:
                if r_jhostname == i:
                    jhostname = 'dup_'+r_jhostname
                    notes[1] = "jail with hostname '%s' exist" % r_jhostname
                    break
-               else:
-                   jhostname = r_jhostname
-                   notes[1] = 'OK'
+
 # check for duplicated jail id
            r_jid =  int(recvData[1])
            jailsid = jails[2]
            jailsid = [int(i) for i in jailsid]
            jailsid.sort()
+           jid = r_jid
+           notes[2] = 'OK'
            for i in jailsid:
                if r_jid == i:
                    maxjid = max(jailsid)
@@ -2863,27 +2857,26 @@ def migrateServer (servClient,  host,  port,  secret,  jnid,):
                       count = count +1
                    notes[2] = "jail with ID '%s' exist" % r_jid
                    break
-               else:
-                   jid = r_jid
-                   notes[2] = 'OK'
+
 # check for duplicated jail ip
            r_jip = recvData[4]
+           jip = r_jip
+           notes[3] = 'OK'  
            for i in jails[3]:
                if r_jip == i:
                    jip = '0.0.0.0/0'
                    notes[3] = "IP address '%s' exist" % r_jip
                    break
-               else:
-                   jip = r_jip
-                   notes[3] = 'OK'          
+   
 # check if gw exist
+           brin, gwip, gwnet = bridge(gwc = 'check')
            r_jgw = recvData[5]
-           if  r_jgw not in jails[4]:
+           jgw = r_jgw
+           notes[4] = 'OK' 
+           if  r_jgw not in gwip:
               jgw = '0.0.0.0/0'
               notes[4] = "Gateway '%s' not exist" % r_jgw
-           else:
-              jgw = r_jgw
-              notes[4] = 'OK'                
+               
 # check zfs space 
            r_jzfs = recvData[7].split('/')
            r_jzfs = r_jzfs[0]
@@ -2913,7 +2906,7 @@ def migrateServer (servClient,  host,  port,  secret,  jnid,):
            recv_jail_menu  = ['Jail', 'Received Settings',  'Local Settings', 'Notes']
            recv_jail_settings = [['Name', r_jname,  jname,  notes[0]], 
            ['Hostname',r_jhostname, jhostname,  notes[1]], 
-           ['ID', r_jid,  jid,  notes[2]], 
+           ['ID',str(r_jid),  str(jid),  notes[2]], 
            ['IP address', r_jip,  jip,  notes[3]], 
            ['Gateway', r_jgw,  jgw,  notes[4]],
            ['ZFS Size', r_jzfs,  zfsfree,  notes[5]],
@@ -2928,18 +2921,7 @@ def migrateServer (servClient,  host,  port,  secret,  jnid,):
            
         except (KeyboardInterrupt,  OSError):
            log("       WARNING: jadm server was stopped!")
-# Received  jail ZFS   
-        try:
-           print ''
-           log("       INFO: jadm wait for '%s' jail ZFS snapshot" % jname)
-           print '       %s' % ('-' * len(logmsg[7:]))
-           recvData = jadm_server(host, int(port),  secret,  'zfs')
-           if  recvData == False:
-               log("       WARNING: jadm server was stopped!")
-               return False
-           
-        except (KeyboardInterrupt,  OSError):
-           log("       WARNING: jadm server was stopped!")           
+
         return False
         
         
