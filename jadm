@@ -2603,13 +2603,14 @@ def log(string):
     string = "%s %s jadm: %s" % (dt, os.uname()[1],  string)
     os.system("echo '%s' >> %s" % (string,  logfile))
 
-def jadm_server(LHOST, LPORT,  secret):
+def jadm_server(LHOST, LPORT,  secret,  type):
     '''
        recv aes encypted data
     '''
     recvlist = []
     try:
        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+       s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) 
        s.bind((LHOST, LPORT))
        s.listen(1)
     except:
@@ -2620,43 +2621,60 @@ def jadm_server(LHOST, LPORT,  secret):
 # start recv. data    
     conn, addr = s.accept()
     print '       INFO: jadm server is connected by: ',  addr
-    mig_jailconf = []
-    while True:
+    
+    
+# REC text list (jail config)
+    if type == 'jconfig':
+       mig_jailconf = []
+       while True:
 # REC
-      data = conn.recv(1024)
+         data = conn.recv(1024)
 # DEC
-      decData = aes(data, secret, 'dec')
-      mig_jailconf.append(decData)
+         decData = aes(data, secret, 'dec')
+         mig_jailconf.append(decData)
           
-      if 'closeconn' in decData:
-         conn.close()
-         mig_jailconf[-1] = addr[0]
-         return mig_jailconf
-      conn.send(data)
+         if 'closeconn' in decData:
+            s.shutdown(socket.SHUT_RDWR)
+            s.close()
+            mig_jailconf[-1] = addr[0]
+            return mig_jailconf
+         conn.send(data)
+         
+# REC binary  (zfs)
+    if  type == 'zfs':
+        print 'zfs'
 
-def jadm_client(HOST, PORT, secret,  sendData):
+def jadm_client(HOST, PORT, secret,  sendData,  type):
     '''
        send aes encrypted data
     '''
 # ENC
     if len(secret) != 16:
-       logmsg = "       ERROR: server password should be 16 symbols, current is: %s" % len(secret)
-       log(logmsg)
-       return False
+       return "       ERROR: server password should be 16 symbols, current is: %s" % len(secret)
 
     try:
-      s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-      s.connect((HOST, PORT))
+      cs = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+      cs.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) 
+      cs.connect((HOST, PORT))
     except socket.error:
-      logmsg = "       ERROR: No connection to %s:%s" % (HOST, PORT)
-      log(logmsg)
-      return False
+      return "       ERROR: No connection to %s:%s" % (HOST, PORT)
 
-    for i in sendData:
 # ENC and SEND
-      s.send(aes(i, secret, 'enc'))
-      data = s.recv(1024)
-      return data
+# send jail config
+    if type == 'jconfig':
+       for i in sendData:
+          encData = aes(i, secret, 'enc')
+          cs.send(encData)
+          encData = cs.recv(1024)
+          
+       cs.shutdown(socket.SHUT_RDWR)
+       cs.close()
+       return "       INFO: jadm client> transfer to '%s' was finished" % HOST
+       
+       
+#send jail ZFS
+    if type == 'zfs':
+        print 'send zfs'
 
 def aes(data, secret ,encdec):
    '''
@@ -2691,7 +2709,7 @@ def aes(data, secret ,encdec):
       decoded = DecodeAES(cipher, data)
       return decoded
 
-def migrateServer (servClient,  host,  port,  jnid):
+def migrateServer (servClient,  host,  port,  secret,  jnid,):
     '''
        migrate jail via socket server
     '''
@@ -2701,8 +2719,70 @@ def migrateServer (servClient,  host,  port,  jnid):
         host = LHOST
     if port == 'None':
         port = LPORT
-        
-# JADM SERVER 
+#
+# JADM CLIENT
+#
+    if servClient == 'client':
+# chekc jail name/id
+      try:
+         int(jnid) == True
+         testid = 0
+      except ValueError:
+        testid = 1
+
+      if testid == 0:
+         if jnid in jails[2]:
+            j = jails[2].index(jnid)
+            jnid = jails[1][j]
+         else:
+            log("      ERROR: jadm client> Jail with ID '%s' not found!" % (jnid))
+            return False
+            
+      if testid == 1:
+         if jnid not in jails[1]:
+            log("      ERROR: jadm client> Jail with name '%s' not found!" % (jnid))
+            return False 
+   
+      if jnid == 'BASE':
+         log("      ERROR: jadm client> 'BASE' jail cannot be migrated!")
+         return False
+# mark jail for BASE skeleton
+      base = 0
+      if 'BASE-' in jnid:
+         base = 1
+# start jadm client        
+      if ch_ipv4(host)  == False:
+            log("       ERROR: jadm client> '%s' is not valid IP address" % host)
+            return False
+            
+      try:
+            int(port)
+      except ValueError:
+            log("       ERROR: jadm client> '%s' is not valid network port" % port)
+            return False
+# star send data
+      try:
+         print ''
+         cmsg = "       INFO: jadm client> Migration in progress, please check '%s' for more information ..." % host
+         print cmsg
+         print '       %s' % ('-' * len(cmsg[7:]))
+         log("       INFO: jadm client> send '%s' jail config to host: '%s' on port: '%s'" % (jnid,  host,  port))
+
+         jn = jails[1].index(jnid)
+         sendData = []
+         for i in jails[7][jn + 1]:
+             sendData.append(str(i))
+         sendData.append('closeconn')
+# jadm client
+         cmsg = jadm_client(host,  int(port),  secret, sendData,  'jconfig')
+         log(cmsg)
+         
+      except (KeyboardInterrupt,  OSError):
+         log("       WARNING: jadm client> migration was stopped!")
+     
+#
+# JADM SERVER
+#
     if servClient == 'server':
         if ch_ipv4(host)  == False:
             logmsg = "       ERROR: jadm server> '%s' is not valid IP address" % host
@@ -2733,14 +2813,17 @@ def migrateServer (servClient,  host,  port,  jnid):
         print'       INFO: jadm server password: %s' % secret
         print ''
         print "       INFO: 'CTL + c' to stop jadm server"
+# Received  jail config
         try:
-           recvData = jadm_server(host, int(port),  secret)
+           recvData = jadm_server(host, int(port),  secret,  'jconfig')
+           if  recvData == False:
+               log("       WARNING: jadm server was stopped!")
+               return False
+               
            logmsg = '       INFO: jadm receive config for jail: %s' % recvData[2]
            log(logmsg)
            print '       %s' % ('-' * len(logmsg[7:]))
            print ''
-           
-# Received  jail config
            notes = [0,  1,  2,  3,  4,  5 , 6 , 7]
 # check for duplicated name
            r_jname = recvData[2]
@@ -2843,9 +2926,20 @@ def migrateServer (servClient,  host,  port,  jnid):
                log('       ERROR: '+ notes[5])
                return False
            
-        except OSError:
+        except (KeyboardInterrupt,  OSError):
            log("       WARNING: jadm server was stopped!")
-
+# Received  jail ZFS   
+        try:
+           print ''
+           log("       INFO: jadm wait for '%s' jail ZFS snapshot" % jname)
+           print '       %s' % ('-' * len(logmsg[7:]))
+           recvData = jadm_server(host, int(port),  secret,  'zfs')
+           if  recvData == False:
+               log("       WARNING: jadm server was stopped!")
+               return False
+           
+        except (KeyboardInterrupt,  OSError):
+           log("       WARNING: jadm server was stopped!")           
         return False
         
         
@@ -3516,9 +3610,14 @@ class lcmd(cmd.Cmd):
         if len(arg) >= 1:
            if arg[0] == 'server':
                if len(arg) == 3:
-                  migrateServer(arg[0],  arg[1],  arg[2],  'None')
+                  migrateServer(arg[0],  arg[1],  arg[2],  'None',  'None')
                elif len(arg) == 1:
-                   migrateServer(arg[0],  'None',  'None',  'None')
+                   migrateServer(arg[0],  'None',  'None',  'None',  'None')
+               else:
+                  print "       Please enter \'help migrate\' for valid commands!" 
+           elif arg[0] == 'client':
+               if len(arg) == 5:
+                   migrateServer(arg[0],  arg[1],  arg[2],  arg[3],  arg[4])
                else:
                   print "       Please enter \'help migrate\' for valid commands!" 
            else:
