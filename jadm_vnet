@@ -415,7 +415,7 @@ def jails_list(mas = None,  remote_zfs = 0):
 # soted() return list element with all jails configs ordered by jid
    return  (active, name, jid, ip, gw, hostname, path, sorted(jailscfg,  key=lambda x: int(x[1])))
 
-def bdsinstall_src(install_path_mp, install_path_zfs, jname,  choise):
+def bdsinstall_src(install_path_mp, install_path_zfs, jname,  choise, network, isvnet):
       """
 ########################################################################################
 # Install jail bsd envoirment in jail path
@@ -534,7 +534,19 @@ def bdsinstall_src(install_path_mp, install_path_zfs, jname,  choise):
 # if template jails jail mark as BASE skeleton         
          if base == 1:
              jb = jb + 2
-
+# exclude jail network config options
+# check template if is vnet/novnet and fix config as well
+         if network == 'vnet;':
+            if isvnet == 'NO':
+               jb = (jb - 3) + 16
+            else:
+               jb = jb + 16
+         else:
+            if isvnet == 'YES':
+               jb = (jb - 16) + 3
+            else:
+               jb = jb + 3
+ 
          for i in jcl[jb+8:je-1]:
              temp_add_cfg.append(i)
          jc.close()
@@ -834,7 +846,7 @@ def jail_create():
          if use == 2:
              return False
          if use == 0:
-            temp_add_cfg = bdsinstall_src(jpath+jname, jzfs+'/'+jname,  jname,  install_choise)
+            temp_add_cfg = bdsinstall_src(jpath+jname, jzfs+'/'+jname,  jname,  install_choise, network[0], isvnet)
 # check if was installed from skleton template
             if  temp_add_cfg:
                if  temp_add_cfg[-1] == '1':
