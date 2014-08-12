@@ -426,6 +426,8 @@ def bdsinstall_src(install_path_mp, install_path_zfs, jname,  choise, network, i
 # new jail config options list
       temp_add_cfg = []
 
+      jails = jails_list()
+
 # Skeleton jail model install
       if choise == 'skel':
          temp_add_cfg = skel_model('install',  install_path_mp, install_path_zfs,  jname)
@@ -491,8 +493,24 @@ def bdsinstall_src(install_path_mp, install_path_zfs, jname,  choise, network, i
                print " "
                print "      ERROR: Please enter existing Jail name!"
                continue
+
+            tjName = jails[1].index(jtemplate)
+            tjIP = jails[4][tjName]
+
+            if isvnet == 'YES':
+               if tjIP == 'system':
+                  print ""
+                  print "      ERROR: NoVnet jail cannot be used as template for Vnet jail!"
+                  continue
+
+            elif isvnet == 'NO':
+               if tjIP != 'system':
+                  print ""
+                  print "      ERROR: Vnet jail cannot be used as template for NoVnet jail!"
+                  continue
             else:
                break
+
 # find jail tamplate local options          
          fj = find_jail(jtemplate)
          jb = fj[0]
@@ -537,15 +555,9 @@ def bdsinstall_src(install_path_mp, install_path_zfs, jname,  choise, network, i
 # exclude jail network config options
 # check template if is vnet/novnet and fix config as well
          if network == 'vnet;':
-            if isvnet == 'NO':
-               jb = (jb - 3) + 16
-            else:
-               jb = jb + 16
+            jb = jb + 16
          else:
-            if isvnet == 'YES':
-               jb = (jb - 16) + 3
-            else:
-               jb = jb + 3
+            jb = jb + 3
  
          for i in jcl[jb+8:je-1]:
              temp_add_cfg.append(i)
