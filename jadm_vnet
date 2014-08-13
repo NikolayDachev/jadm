@@ -503,13 +503,13 @@ def bdsinstall_src(install_path_mp, install_path_zfs, jname,  choise, network, i
                   print "      ERROR: NoVnet jail cannot be used as template for Vnet jail!"
                   continue
 
-            elif isvnet == 'NO':
+            if isvnet == 'NO':
                if tjIP != 'system':
                   print ""
                   print "      ERROR: Vnet jail cannot be used as template for NoVnet jail!"
                   continue
-            else:
-               break
+          
+            break
 
 # find jail tamplate local options          
          fj = find_jail(jtemplate)
@@ -526,7 +526,7 @@ def bdsinstall_src(install_path_mp, install_path_zfs, jname,  choise, network, i
             os.system('mkdir %s%s' % (jpath, jname))
 # make correct install_path in jail.conf            
             install_path_cfg = '%s%s' % (jpath, jname)
-            temp_add_cfg = ['mount.fstab="%sBASE-RW/%s/etc/fstab";' % (jpath, jname),  'mount.devfs;']
+            temp_add_cfg = ['### BASE jail mount options ###', 'mount.fstab="%sBASE-RW/%s/etc/fstab";' % (jpath, jname),  'mount.devfs;']
             install_path_zfs = '%s/BASE-RW/%s' % (jzfs, jname)
             base = 1
          print " "
@@ -785,7 +785,8 @@ def jail_create():
            break
 
    if jname == 'BASE':
-      (jhostname, jid, jgw, jip, jquota) = ('BASE.localhost',  '0', '0.0.0.0', '0.0.0.0',  'NONE'  )
+      network = ['']
+      (jhostname, jid, jgw, jip, jquota, isvnet) = ('BASE.localhost',  '0', '0.0.0.0', '0.0.0.0',  'none', 'N/A' )
 
    print " "
    chlist = ['bsd', 'src', 'template', 'skel', '!']
@@ -877,9 +878,9 @@ def jail_create():
             newjail.insert(-1, i)
 
 # add local config
-         newjail.insert(-1, '### jail local options ###')
          for i in temp_add_cfg:
             newjail.insert(-1, i)
+         newjail.insert(-1, '### jail local options ###')
 
          jc = open(jailconf, 'a')
          jc.write('\n'.join(newjail)) 
@@ -1303,11 +1304,10 @@ def jail_destroy(action, jnid = ''):
             jc.write('\n'.join(jcl))
             jc.close()
 # check if is skeleton jails
-            os.system("rmdir %s%s" % (jpath, jnid))
             if 'BASE-' in jnid:
                  jnid = 'BASE-RW/%s' % jnid
             os.system("zfs destroy -r %s/%s" % (jzfs, jnid))
-            
+            os.system("rmdir %s%s" % (jpath, jnid))
     
             logmsg = "      INFO: Jail '%s' was destroyed!" % (jnid)
             log(logmsg)
@@ -2507,17 +2507,24 @@ def jail_local_option(action,  jnid = '',  option = ''):
    jcl = fj[2]
    
 # create local options list
-   lmen = ["Number", "### jail local options ### for jail '%s'" % (jnid)]
+   lmen = ["Number", "### '%s' local options ###" % (jnid)]
    jail_local_op = []
    number_local_op = 0
    add_jb = 8
+
+# fix netwrok setting
+   if jcl[jb] == 'vnet':
+      add_jb = add_jb + 16
+   else:
+      add_jb = add_jb + 3
+
 # check if jaisl is BASE skeleton model
    if base == 1:
        add_jb = 10
    for i in jcl[jb+add_jb:je-1]:
       jail_local_op.append([number_local_op, i])
       number_local_op += 1
-         
+      
 # list jail local option in /etc/jail.conf
    if action == "list":
       print tabulate(jail_local_op, lmen)
