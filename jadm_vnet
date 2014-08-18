@@ -2520,7 +2520,7 @@ def jail_local_option(action,  jnid = '',  option = ''):
 
 # check if jail is BASE skeleton model
    if base == 1:
-       add_jb = 10
+       add_jb = add_jb + 2
    for i in jcl[jb+add_jb:je-1]:
       jail_local_op.append([number_local_op, i])
       number_local_op += 1
