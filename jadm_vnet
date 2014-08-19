@@ -2518,7 +2518,6 @@ def jail_local_option(action,  jnid = '',  option = ''):
    else:
       add_jb = add_jb + 5
 
-   print add_jb, jcl[jb+8]
 # check if jail is BASE skeleton model
    if base == 1:
        add_jb = 10
