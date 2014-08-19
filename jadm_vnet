@@ -96,6 +96,8 @@ vnet = [
 # no vnet
 net = [
 'ip4.addr = "$jip";',
+'exec.start = "/bin/sh /etc/rc";',
+'exec.stop = "/bin/sh /etc/rc.shutdown";',
 'persist;',
 ]
 
@@ -557,7 +559,7 @@ def bdsinstall_src(install_path_mp, install_path_zfs, jname,  choise, network, i
          if network == 'vnet;':
             jb = jb + 16
          else:
-            jb = jb + 3
+            jb = jb + 5
  
          for i in jcl[jb+8:je-1]:
              temp_add_cfg.append(i)
@@ -2086,10 +2088,8 @@ def initsetup():
 # 9. end jail config with wavy bracket
 #############################################################################################
             """) % (jadm_version)
-      new_config = [config_instructions, '################## Default Settings (DO NOT EDIT THIS SECTION MANUALY) ######################','$jzfs = "%s";' % (jzfs), '$jedir = "%s";' % (jpath), '$bridge = "%s";' % (brid), '$epair = "epair$jid";', '$a = "a";', '$b = "b";', newmac, ' ', 'path = "$jedir$name";', 'vnet;', 'vnet.interface = "$epair$b";', \
-'exec.start = "ifconfig lo0 127.0.0.1/8";', 'exec.prestart = "ifconfig $epair create";', 'exec.prestart += "$newmac |xargs ifconfig $epair$b ether";','exec.prestart += "ifconfig $bridge addm $epair$a up";', 'exec.prestart += "ifconfig $epair$a up";', \
-'exec.start += "ifconfig $epair$b $jip";', 'exec.start += "route add default $jgw";', 'exec.start += "/bin/sh /etc/rc";', 'exec.poststop = "ifconfig $bridge deletem $epair$a";', 'exec.poststop += "ifconfig $epair$a destroy";', 'exec.stop = "/bin/sh /etc/rc.shutdown";', \
-'exec.clean;', '####################### End of Default Settings ############################################', '#####################  Jails Global Options (YOU CAN CUSTOMIZE) ############################', ' ', '###################### End of Jails Global Options ##########################################', '############################ Jails Settings #################################################', ' ']
+      new_config = [config_instructions, '################## Default Settings (DO NOT EDIT THIS SECTION MANUALY) ######################','$jzfs = "%s";' % (jzfs), '$jedir = "%s";' % (jpath), '$bridge = "%s";' % (brid), '$epair = "epair$jid";', '$a = "a";', '$b = "b";', newmac, ' ', 'path = "$jedir$name";', 
+ '####################### End of Default Settings ############################################', '#####################  Jails Global Options (YOU CAN CUSTOMIZE) ############################', ' ', '###################### End of Jails Global Options ##########################################', '############################ Jails Settings #################################################', ' ']
    
       jc_file.write('\n'.join(new_config))
       jc_file.close()
@@ -2513,12 +2513,13 @@ def jail_local_option(action,  jnid = '',  option = ''):
    add_jb = 8
 
 # fix netwrok setting
-   if jcl[jb] == 'vnet':
+   if jcl[jb+8] == 'vnet;':
       add_jb = add_jb + 16
    else:
-      add_jb = add_jb + 3
+      add_jb = add_jb + 5
 
-# check if jaisl is BASE skeleton model
+   print add_jb, jcl[jb+8]
+# check if jail is BASE skeleton model
    if base == 1:
        add_jb = 10
    for i in jcl[jb+add_jb:je-1]:
