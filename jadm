@@ -52,7 +52,7 @@ import base64
 ########################################################################################
 
 # jadm version
-jadm_version = "ver. 0.9-BETA"
+jadm_version = "ver. 0.92_1-BETA"
 
 # jail.conf location by default /etc/jail.conf
 jailconf = '/etc/jail.conf' 
@@ -71,6 +71,35 @@ verbose = 0
 # jadm server
 LHOST = '0.0.0.0'
 LPORT = 4555
+
+# network config
+
+# vnet
+vnet = [
+'vnet;',
+'vnet.interface = "$epair$b";',
+'exec.start = "ifconfig lo0 127.0.0.1/8";',
+'exec.prestart = "ifconfig $epair create";',
+'exec.prestart += "$newmac |xargs ifconfig $epair$b ether";',
+'exec.prestart += "ifconfig $bridge addm $epair$a up";',
+'exec.prestart += "ifconfig $epair$a up";',
+'exec.start += "ifconfig $epair$b $jip";',
+'exec.start += "route add default $jgw";',
+'exec.start += "/bin/sh /etc/rc";',
+'exec.poststop = "ifconfig $bridge deletem $epair$a";',
+'exec.poststop += "ifconfig $epair$a destroy";',
+'exec.stop = "/bin/sh /etc/rc.shutdown";',
+'exec.clean;',
+'persist;'
+]
+
+# no vnet
+net = [
+'ip4.addr = "$jip";',
+'exec.start = "/bin/sh /etc/rc";',
+'exec.stop = "/bin/sh /etc/rc.shutdown";',
+'persist;',
+]
 
 ########################################################################################
 # Main Functions
@@ -388,7 +417,7 @@ def jails_list(mas = None,  remote_zfs = 0):
 # soted() return list element with all jails configs ordered by jid
    return  (active, name, jid, ip, gw, hostname, path, sorted(jailscfg,  key=lambda x: int(x[1])))
 
-def bdsinstall_src(install_path_mp, install_path_zfs, jname,  choise):
+def bdsinstall_src(install_path_mp, install_path_zfs, jname,  choise, network, isvnet):
       """
 ########################################################################################
 # Install jail bsd envoirment in jail path
@@ -398,6 +427,8 @@ def bdsinstall_src(install_path_mp, install_path_zfs, jname,  choise):
       """
 # new jail config options list
       temp_add_cfg = []
+
+      jails = jails_list()
 
 # Skeleton jail model install
       if choise == 'skel':
@@ -464,8 +495,24 @@ def bdsinstall_src(install_path_mp, install_path_zfs, jname,  choise):
                print " "
                print "      ERROR: Please enter existing Jail name!"
                continue
-            else:
-               break
+
+            tjName = jails[1].index(jtemplate)
+            tjIP = jails[4][tjName]
+
+            if isvnet == 'YES':
+               if tjIP == 'system':
+                  print ""
+                  print "      ERROR: NoVnet jail cannot be used as template for Vnet jail!"
+                  continue
+
+            if isvnet == 'NO':
+               if tjIP != 'system':
+                  print ""
+                  print "      ERROR: Vnet jail cannot be used as template for NoVnet jail!"
+                  continue
+          
+            break
+
 # find jail tamplate local options          
          fj = find_jail(jtemplate)
          jb = fj[0]
@@ -481,7 +528,7 @@ def bdsinstall_src(install_path_mp, install_path_zfs, jname,  choise):
             os.system('mkdir %s%s' % (jpath, jname))
 # make correct install_path in jail.conf            
             install_path_cfg = '%s%s' % (jpath, jname)
-            temp_add_cfg = ['mount.fstab="%sBASE-RW/%s/etc/fstab";' % (jpath, jname),  'mount.devfs;']
+            temp_add_cfg = ['### BASE jail mount options ###', 'mount.fstab="%sBASE-RW/%s/etc/fstab";' % (jpath, jname),  'mount.devfs;']
             install_path_zfs = '%s/BASE-RW/%s' % (jzfs, jname)
             base = 1
          print " "
@@ -507,7 +554,13 @@ def bdsinstall_src(install_path_mp, install_path_zfs, jname,  choise):
 # if template jails jail mark as BASE skeleton         
          if base == 1:
              jb = jb + 2
-
+# exclude jail network config options
+# check template if is vnet/novnet and fix config as well
+         if network == 'vnet;':
+            jb = jb + 16
+         else:
+            jb = jb + 5
+ 
          for i in jcl[jb+8:je-1]:
              temp_add_cfg.append(i)
          jc.close()
@@ -636,60 +689,77 @@ def jail_create():
             print "      ERROR: Jail with ID '%s' already exist please choose different!" % (jid)
          else:
             break
+# IS VNET ?
 
-      brin, gwip, gwnet = bridge()
+      cvnet = raw_input('Vnet support (y):> ')
+      if cvnet == "!":
+         print " "
+         print "      INFO: Interrupted by user"
+         return False
+          
+      if 'y' in cvnet:
+# apply vnet rules for network
+         network = vnet
+         isvnet = 'YES'
+
+         brin, gwip, gwnet = bridge()
+         while True:
+            jgw = raw_input('Jail Gateway number:> ')
+            if jgw == "!":
+               print "      INFO: Interrupted by user"   
+               return False
+
+            try:
+               int(jgw)
+            except ValueError:
+               print " "
+               print "      ERROR: Slecet valid Gateway number (%s - %s)!" % (0, len(gwip) - 1)
+               continue
+
+            if int(jgw) >= len(gwip):
+               print " "
+               print "     ERROR: Slecet valid Gateway number (%s - %s)!" % (0, len(gwip) - 1)
+            else:
+               gwnet = gwnet[int(jgw)]
+               jgw = gwip[int(jgw)]
+               break
+      else:
+         network = net
+         isvnet = 'NO'
+         jgw = "system"
+
       while True:
-         jgw = raw_input('Jail Gateway number:> ')
-
-         if jgw == "!":
-            print "      INFO: Interrupted by user"   
-            return False
-
-         try:
-           int(jgw)
-         except ValueError:
-           print " "
-           print "      ERROR: Slecet valid Gateway number (%s - %s)!" % (0, len(gwip) - 1)
-           continue
-
-         if int(jgw) >= len(gwip):
-            print " "
-            print "     ERROR: Slecet valid Gateway number (%s - %s)!" % (0, len(gwip) - 1)
-         else:
-            gwnet = gwnet[int(jgw)]
-            jgw = gwip[int(jgw)]
-            break
-
-      while True:
-         ji = raw_input('Jail IP Address:> ')
-         if ji == "!":
+         jip = raw_input('Jail IP Address:> ')
+         if jip == "!":
             print " "
             print "      INFO: Interrupted by user"
             return False
 
-         if ch_ipv4(ji) == False:
+         if ch_ipv4(jip) == False:
             print " "
             print "      ERROR: Please enter valid IP address!"
             continue
-      
-         bridge_ip_check, brnet = bridge_network_check(ji, jgw, gwnet)
 
-         if int(bridge_ip_check) == 0:
-            print " "
-            print "      ERROR: %s ip addreess not in %s network" % (ji, brnet)
-            continue
-         else:
-            jip = str(ji) + str(brnet)[-3:]
-            if str(ji) == str(jgw):
+         if 'y' in cvnet:
+        
+            bridge_ip_check, brnet = bridge_network_check(jip, jgw, gwnet)
+  
+            if int(bridge_ip_check) == 0:
                print " "
-               print "      ERROR: '%s' is Gateway address please enter different!" % (jip)
+               print "      ERROR: %s ip addreess not in %s network" % (jip, brnet)
                continue
-
-            if jip in jails[3]:
-               print " "
-               print "      ERROR: Jail with IP address '%s' already exist please enter different!" % (jip)
             else:
-               break
+               jip = str(jip) + str(brnet)[-3:]
+               if str(jip) == str(jgw):
+                  print " "
+                  print "      ERROR: '%s' is Gateway address please enter different!" % (jip)
+                  continue
+
+         if jip in jails[3]:
+            print " "
+            print "      ERROR: Jail with IP address '%s' already exist please enter different!" % (jip)
+         else:
+            break
          
       while True:
          jquota = raw_input('ZFS Quota (M)egabytes, (G)igabytes, (none) for unlimited:> ')
@@ -698,6 +768,10 @@ def jail_create():
             print " "
             print "      INFO: Interrupted by user"
             return False
+
+         if jquota in ['', ' ', '   ']:
+            jquota = "none"
+            break
 
          if jquota == "none":
             break
@@ -717,7 +791,8 @@ def jail_create():
            break
 
    if jname == 'BASE':
-      (jhostname, jid, jgw, jip, jquota) = ('BASE.localhost',  '0', '0.0.0.0', '0.0.0.0',  'NONE'  )
+      network = ['']
+      (jhostname, jid, jgw, jip, jquota, isvnet) = ('BASE.localhost',  '0', '0.0.0.0', '0.0.0.0',  'none', 'N/A' )
 
    print " "
    chlist = ['bsd', 'src', 'template', 'skel', '!']
@@ -766,8 +841,9 @@ def jail_create():
       if jname != 'BASE':
              print " "
              print "...  New Jail will be created ... \n"
+
       new_jail_menu  = ['New Jail', 'Settings']
-      new_jail_settings = [['Name', jname], ['Hostname', jhostname], ['ID', jid], ['IP address', jip], ['Gateway', jgw], ['Path', "%s%s" % (jpath, jname)], ['ZFS', "%s/%s" % (jzfs, jname)], ['ZFS Quota', jquota],  ['Install Source',  install_choise]]
+      new_jail_settings = [['Name', jname], ['Hostname', jhostname], ['ID', jid], ['Is Vnet', isvnet],['IP address', jip], ['Gateway', jgw], ['Path', "%s%s" % (jpath, jname)], ['ZFS', "%s/%s" % (jzfs, jname)], ['ZFS Quota', jquota],  ['Install Source',  install_choise]]
       print tabulate(new_jail_settings, new_jail_menu)
 
       yn = raw_input("confirm (y/n):> ")
@@ -789,7 +865,7 @@ def jail_create():
          if use == 2:
              return False
          if use == 0:
-            temp_add_cfg = bdsinstall_src(jpath+jname, jzfs+'/'+jname,  jname,  install_choise)
+            temp_add_cfg = bdsinstall_src(jpath+jname, jzfs+'/'+jname,  jname,  install_choise, network[0], isvnet)
 # check if was installed from skleton template
             if  temp_add_cfg:
                if  temp_add_cfg[-1] == '1':
@@ -801,9 +877,16 @@ def jail_create():
              temp_add_cfg = []
                   
          dt = str(datetime.now())
-         newjail = [' \n', jname, '{', '# Jail "%s" was modified on %s by ... JADM ...' % (jname, dt), 'host.hostname = %s;' % (jhostname), 'jid = %s;' % (jid), '$jip = "%s";' % (jip), '$jgw = "%s";' % (jgw), '### jail local options ###', '}']
+         newjail = [' \n', jname, '{', '# created on %s by ... JADM ...' % (dt), 'host.hostname = %s;' % (jhostname), 'jid = %s;' % (jid), '$jip = "%s";' % (jip), '$jgw = "%s";' % (jgw), '### jail network options ###', '}']
+
+# add network
+         for i in network:
+            newjail.insert(-1, i)
+
+# add local config
          for i in temp_add_cfg:
             newjail.insert(-1, i)
+         newjail.insert(-1, '### jail local options ###')
 
          jc = open(jailconf, 'a')
          jc.write('\n'.join(newjail)) 
@@ -1227,11 +1310,10 @@ def jail_destroy(action, jnid = ''):
             jc.write('\n'.join(jcl))
             jc.close()
 # check if is skeleton jails
-            os.system("rmdir %s%s" % (jpath, jnid))
             if 'BASE-' in jnid:
                  jnid = 'BASE-RW/%s' % jnid
             os.system("zfs destroy -r %s/%s" % (jzfs, jnid))
-            
+            os.system("rmdir %s%s" % (jpath, jnid))
     
             logmsg = "      INFO: Jail '%s' was destroyed!" % (jnid)
             log(logmsg)
@@ -1492,6 +1574,7 @@ def jail_modify(jnid = ''):
          if i[2] == jnid:
             jmodify = i
             del jmodify[0]
+
       print "----------------------------------------------------"
       print "-      Modify '%s' settings" % (jmodify[1])
       print "----------------------------------------------------"
@@ -1551,38 +1634,44 @@ def jail_modify(jnid = ''):
          else:
             break
 
-      brin, gwip, gwnet = bridge()
-      while True:
-         jgw = raw_input('Jail IP Gateway (%s):> ' % (jmodify[4]))
-         if jgw in ['', ' ', '   ']:
-            jgw = jmodify[4]
-            gwnet_index = jmodify[4].index(jmodify[4])
-            gwnet = gwnet[gwnet_index]
-            break
-
-         if jgw == "!":
-            print " "
-            print "      INFO: Interrupted by user"
-            return False
-
-         try:
-           int(jgw)
-         except ValueError:
-           print " "
-           print "      ERROR: Slecet valid Gateway number (%s - %s)!" % (0, len(gwip) - 1)
-           continue
-
-         if int(jgw) >= len(gwip):
-           print " "
-           print "      ERROR: Slecet valid Gateway number (%s - %s)!" % (0, len(gwip) - 1)
-         else:
-           gwnet = gwnet[int(jgw)]
-           jgw = gwip[int(jgw)]
-           break
-
-      while True:
+# check if this is vnet jail
+# joldip depend if we use vnet or not
+      if jmodify[4] != 'system':
          joldip = jmodify[3][:-3]
- 
+
+         brin, gwip, gwnet = bridge()
+         while True:
+            jgw = raw_input('Jail IP Gateway (%s):> ' % (jmodify[4]))
+            if jgw in ['', ' ', '   ']:
+              jgw = jmodify[4]
+              gwnet_index = jmodify[4].index(jmodify[4])
+              gwnet = gwnet[gwnet_index]
+              break
+
+            if jgw == "!":
+              print " "
+              print "      INFO: Interrupted by user"
+              return False
+
+            try:
+              int(jgw)
+            except ValueError:
+              print " "
+              print "      ERROR: Slecet valid Gateway number (%s - %s)!" % (0, len(gwip) - 1)
+              continue
+
+            if int(jgw) >= len(gwip):
+              print " "
+              print "      ERROR: Slecet valid Gateway number (%s - %s)!" % (0, len(gwip) - 1)
+            else:
+              gwnet = gwnet[int(jgw)]
+              jgw = gwip[int(jgw)]
+              break
+      else:
+            jgw = 'system'
+            joldip = jmodify[3]
+
+      while True:
          ji = raw_input('Jail IP Address (%s):> ' % (joldip))
 
          if ji in ['', ' ', '   ']:
@@ -1597,27 +1686,30 @@ def jail_modify(jnid = ''):
              print " "
              print "      ERROR: Please enter valid IP address!"
          else:
-               
-            bridge_ip_check, brnet = bridge_network_check(ji, jgw, gwnet)
-            if int(bridge_ip_check) == 0:
-               print " "
-               print "      ERROR: %s ip addreess not in %s network" % (ji, brnet)
-               continue
-            if int(bridge_ip_check) == 1:
-               jip = str(ji) + str(brnet)[-3:]
-               if str(ji) == str(jgw):
+# check if this is vnet jail
+            if jmodify[4] != 'system':   
+               bridge_ip_check, brnet = bridge_network_check(ji, jgw, gwnet)
+               if int(bridge_ip_check) == 0:
                   print " "
-                  print "      ERROR: '%s' is Gateway address please enter different!" % (jip)
+                  print "      ERROR: %s ip addreess not in %s network" % (ji, brnet)
                   continue
-               
-               if ji == joldip:
-                  break
+               if int(bridge_ip_check) == 1:
+                  jip = str(ji) + str(brnet)[-3:]
+                  if str(ji) == str(jgw):
+                     print " "
+                     print "      ERROR: '%s' is Gateway address please enter different!" % (jip)
+                     continue
+            else:
+               jip = ji
+             
+            if ji == joldip:
+               break
 
-               if jip in jails[3]:
-                  print " "
-                  print "     ERROR: Jail with IP address '%s' already exist please enter different!" % (jip)
-               else:
-                  break
+            if jip in jails[3]:
+               print " "
+               print "     ERROR: Jail with IP address '%s' already exist please enter different!" % (jip)
+            else:
+               break
      
       while True:
          print "Old quota: %s" % (jmodify[7])
@@ -1627,6 +1719,10 @@ def jail_modify(jnid = ''):
             print " "
             print "      INFO: Interrupted by user"
             return False
+
+         if jquota in ['', ' ', '   ']:
+            jquota = jmodify[7]
+            break
 
          if jquota == "none":
             break
@@ -1736,7 +1832,7 @@ def jail_modify(jnid = ''):
          dt = str(datetime.now())                
          jc = open(jailconf, 'w')
          jcl[jb] = jname
-         jcl[jb+2] = '# Jail "%s" was modified on %s by ... JADM ...' % (jname, dt)
+         jcl[jb+2] = '# modified on %s by ... JADM ...' % (dt)
          jcl[jb+3] = 'host.hostname = %s;' % (jhostname)
          jcl[jb+4] = 'jid = %s;' % (jid)
          jcl[jb+5] = '$jip = "%s";' % (jip)
@@ -1745,8 +1841,13 @@ def jail_modify(jnid = ''):
          if base == 1:
             os.system('echo \"%sBASE %s%s nullfs ro 0 0\" > %sBASE-RW/%s/etc/fstab' % (jpath,  jpath, jname, jpath, jname))
             os.system('echo \"%sBASE-RW/%s %s%s/SROOT nullfs rw 0 0\" >> %sBASE-RW/%s/etc/fstab' % (jpath, jname, jpath, jname, jpath,  jname))
-            jcl[jb+8] = 'mount.fstab="%sBASE-RW/%s/etc/fstab";' % (jpath, jname)
-            jcl[jb+9] = 'mount.devfs;'
+# check if is vnet
+            if jcl[jb+8] == 'vnet;':
+               jcl[jb+23] = 'mount.fstab="%sBASE-RW/%s/etc/fstab";' % (jpath, jname)
+               jcl[jb+24] = 'mount.devfs;'
+            else:
+               jcl[jb+12] = 'mount.fstab="%sBASE-RW/%s/etc/fstab";' % (jpath, jname)
+               jcl[jb+13] = 'mount.devfs;'
          jc.write('\n'.join(jcl))
          jc.close()
 
@@ -2010,10 +2111,8 @@ def initsetup():
 # 9. end jail config with wavy bracket
 #############################################################################################
             """) % (jadm_version)
-      new_config = [config_instructions, '################## Default Settings (DO NOT EDIT THIS SECTION MANUALY) ######################','$jzfs = "%s";' % (jzfs), '$jedir = "%s";' % (jpath), '$bridge = "%s";' % (brid), '$epair = "epair$jid";', '$a = "a";', '$b = "b";', newmac, ' ', 'path = "$jedir$name";', 'vnet;', 'vnet.interface = "$epair$b";', \
-'exec.start = "ifconfig lo0 127.0.0.1/8";', 'exec.prestart = "ifconfig $epair create";', 'exec.prestart += "$newmac |xargs ifconfig $epair$b ether";','exec.prestart += "ifconfig $bridge addm $epair$a up";', 'exec.prestart += "ifconfig $epair$a up";', \
-'exec.start += "ifconfig $epair$b $jip";', 'exec.start += "route add default $jgw";', 'exec.start += "/bin/sh /etc/rc";', 'exec.poststop = "ifconfig $bridge deletem $epair$a";', 'exec.poststop += "ifconfig $epair$a destroy";', 'exec.stop = "/bin/sh /etc/rc.shutdown";', \
-'exec.clean;', '####################### End of Default Settings ############################################', '#####################  Jails Global Options (YOU CAN CUSTOMIZE) ############################', ' ', '###################### End of Jails Global Options ##########################################', '############################ Jails Settings #################################################', ' ']
+      new_config = [config_instructions, '################## Default Settings (DO NOT EDIT THIS SECTION MANUALY) ######################','$jzfs = "%s";' % (jzfs), '$jedir = "%s";' % (jpath), '$bridge = "%s";' % (brid), '$epair = "epair$jid";', '$a = "a";', '$b = "b";', newmac, ' ', 'path = "$jedir$name";', 
+ '####################### End of Default Settings ############################################', '#####################  Jails Global Options (YOU CAN CUSTOMIZE) ############################', ' ', '###################### End of Jails Global Options ##########################################', '############################ Jails Settings #################################################', ' ']
    
       jc_file.write('\n'.join(new_config))
       jc_file.close()
@@ -2431,17 +2530,24 @@ def jail_local_option(action,  jnid = '',  option = ''):
    jcl = fj[2]
    
 # create local options list
-   lmen = ["Number", "### jail local options ### for jail '%s'" % (jnid)]
+   lmen = ["Number", "### '%s' local options ###" % (jnid)]
    jail_local_op = []
    number_local_op = 0
    add_jb = 8
-# check if jaisl is BASE skeleton model
+
+# fix netwrok setting
+   if jcl[jb+8] == 'vnet;':
+      add_jb = add_jb + 16
+   else:
+      add_jb = add_jb + 5
+
+# check if jail is BASE skeleton model
    if base == 1:
-       add_jb = 10
+       add_jb = add_jb + 2
    for i in jcl[jb+add_jb:je-1]:
       jail_local_op.append([number_local_op, i])
       number_local_op += 1
-         
+      
 # list jail local option in /etc/jail.conf
    if action == "list":
       print tabulate(jail_local_op, lmen)
