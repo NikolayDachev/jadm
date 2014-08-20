@@ -52,7 +52,7 @@ import base64
 ########################################################################################
 
 # jadm version
-jadm_version = "ver. 0.92_3-BETA"
+jadm_version = "ver. 0.92_4-BETA"
 
 # jail.conf location by default /etc/jail.conf
 jailconf = '/etc/jail.conf' 
@@ -2724,7 +2724,9 @@ def jadm_server(LHOST, LPORT,  secret):
 
 def jadm_client(HOST, PORT, secret,  sendData):
     '''
-       send aes encrypted data
+########################################################################################
+#       send aes encrypted data
+#
     '''
 # ENC
     if len(secret) != 16:
@@ -2750,7 +2752,9 @@ def jadm_client(HOST, PORT, secret,  sendData):
        
 def aes(data, secret ,encdec):
    '''
-      Original src: http://www.codekoala.com/posts/aes-encryption-python-using-pycrypto/
+########################################################################################
+#   Original src: http://www.codekoala.com/posts/aes-encryption-python-using-pycrypto/
+#
    '''
    # the block size for the cipher object; must be 16, 24, or 32 for AES
    BLOCK_SIZE = 32
@@ -2783,7 +2787,9 @@ def aes(data, secret ,encdec):
 
 def migrateServer (servClient,  host,  port,  secret,  jnid, sshPassword):
     '''
-       migrate jail via socket server
+########################################################################################
+#       migrate jail via socket server
+#
     '''
     jails = jails_list()
     
@@ -2870,6 +2876,12 @@ def migrateServer (servClient,  host,  port,  secret,  jnid, sshPassword):
             if mj[2] == jnid:
                for i in mj:
                   sendData.append(str(i))
+
+# get jail network options
+         jb, je, jcl = find_jail(jnid)
+         for i in jcl[jb+7:je]:
+            sendData.append(str(i))
+# add closseconn string at the end
          sendData.append('closeconn')
 # jadm client
          cmsg = jadm_client(host,  int(port),  secret, sendData)
@@ -2920,7 +2932,7 @@ def migrateServer (servClient,  host,  port,  secret,  jnid, sshPassword):
       ssh.close()
 # send confirmation for complete ZFS transfer
       try:
-         cmsg = jadm_client(host,  int(port),  secret, ['zfscomplete',  'closecon'])
+         cmsg = jadm_client(host,  int(port),  secret, ['zfscomplete',  'closeconn'])
          log(cmsg)
       except (KeyboardInterrupt,  OSError):
          log("       WARNING: jadm client> migration was stopped!")
@@ -3077,21 +3089,27 @@ def migrateServer (servClient,  host,  port,  secret,  jnid, sshPassword):
            log("       WARNING: jadm server> jadm server was stopped!")
            return False
 # wait for zfs confirmation transfer
-        log("       INFO: jadm server> Waiting '%s' to complete zfs transfer for jail '%s'" % (host,  jnid))
+        log("       INFO: jadm server> Waiting '%s' to complete zfs transfer for jail '%s'" % (r_srcip, jname))
         try:
-            recvData = jadm_server(host, int(port),  secret)
+            ZFSrecvData = jadm_server(host, int(port),  secret)
         except (KeyboardInterrupt,  OSError):
            log("       WARNING: jadm server> jadm server was stopped!")
            return False
-        log("       INFO: jadm server> Zfs transfer from '%s' successful complete for jail '%s'" % (host,  jnid)) 
+        if ZFSrecvData[0] == 'zfscomplete':
+           log("       INFO: jadm server> Zfs transfer from '%s' successful complete for jail '%s'" % (r_srcip,  jname))
+ 
 # append new jail to jails.conf
-        log("       INFO: jadm server> Append '%s' jail to $s" % (host,  jailconf))
+        log("       INFO: jadm server> Append '%s' jail to '%s'" % (jname,  jailconf))
         dt = str(datetime.now())
-        newjail = [' \n', jname, '{', "# Jail '%s' was received from '%s' on by ... JADM ..." % (jname, host,dt), 'host.hostname = %s;' % (jhostname), 'jid = %s;' % (jid), '$jip = "%s";' % (jip), '$jgw = "%s";' % (jgw), '### jail local options ###', '}']
+        newjail = [' \n', jname, '{', "# received from '%s' on %s by ... JADM ..." % (r_srcip, dt), 'host.hostname = %s;' % (jhostname), 'jid = %s;' % (jid), '$jip = "%s";' % (jip), '$jgw = "%s";' % (jgw) ]
+# append jail ntewrok settings
+        for othercfg in recvData[10:-1]:
+           newjail.append(othercfg)
+
         jc = open(jailconf, 'a')
         jc.write('\n'.join(newjail)) 
         jc.close()
-        log("       INFO: jadm server> New jail '%s' was successful transfered from %s" % (jname,  host))
+        log("       INFO: jadm server> New jail '%s' was successful transfered from %s" % (jname,  r_srcip))
         
 # print warnings
         if notes[3] != 'OK':
@@ -3101,297 +3119,6 @@ def migrateServer (servClient,  host,  port,  secret,  jnid, sshPassword):
              
         return False
         
-        
-def migrate(jnid, remote = '',  ssh_pass = ''):
-   """
-########################################################################################
-# migrate jail config and zfs from curent system to another 
-# via ssh and sudo user
-# copy /etc/jail.conf from remote host to /tmp/jail.conf.remote_hsotname 
-# manipulate it and replace it to remote host
-# also execute zfs cmd to remote host (change crete jail zfs home)
-#
-   """
-   jailsl = jails_list()
-   jnid = jid_jname(jnid)
-# jail is not mark for overwrite if  jail_overwrite = 0
-   jail_overwrite = 0
-
-# check if jail name / id exist
-   if jnid == False:
-      return False
-
-   if jnid not in jailsl[1]:
-      logmsg =  "      ERROR: Jail with name '%s' not found!" % (jnid)
-      return False
-      
-# local jail config
-   for i in jailsl[7]:
-       if i[2] == jnid:
-           local_jail = i
-
-# try ssh connectivity 
-   ssh_host = remote.split('@')
-
-   print "WARNING: migration process use SUDO for user '%s'!" % ssh_host[0]
-   print "WARNING: if SUDO for host '%s' is not configured with user '%s' please abort!" % (ssh_host[1],  ssh_host[0])
-   while True:
-         yn = raw_input("Do you want to continue (y/n): ")
-         if yn == "!":
-            print "            Interrupted by user"
-            return False
-         if yn in "nN":
-            print "            Interrupted by user"
-            return False
-         if yn in "Yy":
-             break
-
-   ssh = paramiko.SSHClient()
-   ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-   try:
-         ssh.connect(ssh_host[1], username=ssh_host[0], password=ssh_pass)
-         sftp = ssh.open_sftp()
-   except paramiko.AuthenticationException:
-         print "Authentication failed when connecting to %s" % ssh_host[1]
-         return False
-   except:
-        print "Could not SSH to %s host" % ssh_host[1]
-        return False
-#   start migration
-   print "Connection to %s host was successful" % ssh_host[1]
-   
-# check remote host settings
-# active jails by name
-   active_jails_name = []
-   stdin, stdout, stderr = ssh.exec_command('jls -h name')
-   for i in stdout:
-        active_jails_name.append(i.strip('\n'))
-# active jails by id
-   active_jails_jid = []
-   stdin, stdout, stderr = ssh.exec_command('jls -h jid')
-   for i in stdout:
-        active_jails_jid.append(i.strip('\n'))
-# zfs list  
-   zfs = []
-   stdin, stdout, stderr = ssh.exec_command('zfs list -o name ')
-   for i in stdout:
-        zfs.append(i.strip('\n'))
-
-# write remote jail.conf file to /tmp temp file
-   jailconf_remote = '/tmp/%s_jail.conf' % ssh_host[1]
-   sftp.get('/etc/jail.conf',  jailconf_remote)
-
-# overite default jailconf var.
-   jailconf_remote = '/tmp/%s_jail.conf' % ssh_host[1] 
-
-# remote jails config
-   rjails_c = load_jail_config(jailconf_remote)
-   remote_jails = jails_list(rjails_c, remote_zfs = 1)
-
-# cehck default remote host zfs home
-   for i in open(jailconf_remote,  'r'):
-      if "$jedir" in i:
-         r_zfs_home = i.replace('$jedir =', '' ).replace(';', '').replace(' ', '').replace('"', '').strip('\n')
-         break
-# cehck default remote host bridge
-   for i in open(jailconf_remote,  'r'):
-      if "$bridge" in i:
-         r_bridge = i.replace('$bridge =', '' ).replace(';', '').replace(' ', '').replace('"', '').strip('\n')
-         break
-# remote host default settings table
-   print "HOST: %s" % ssh_host[1]
-   set_menu  = ['JADM', 'Settings']
-   bz = [["Bridge interface:",  r_bridge], ["Main zfs:", r_zfs_home]]
-   print tabulate(bz, set_menu)
-   print " "
-
-# zfs free space one remote system
-   jzfspath = r_zfs_home
-   stdin, stdout, stderr = ssh.exec_command("zfs list %s" % jzfspath)
-   for x in stdout:
-         list = x.split(' ')
-         list = [x for x in list if x]
-         r_zfs_free = list[2]
-
-# Check if jail exist on remote system
-   try:
-      r_jails = find_jail(jnid,  jailconf =jailconf_remote) 
-      r_jail = r_jails[2][r_jails[0]:r_jails[1]]
-      r_jail_active = 0
-      print "WARNING: Jail with name '%s' was found on '%s' system!" % (jnid,  ssh_host[1])
-      print "WARNING: ALL ZFS and Spanpshots for '%s' will be destroyed on '%s' system!"  % (jnid,  ssh_host[1])
-      for i in active_jails_name:
-         if jnid == i:
-          r_jail_active = 1
-          print "WARNING: Jail with name '%s' is active on '%s' system with JID: '%s'!" % (jnid,  ssh_host[1],  r_jail[4].replace('jid =', '' ).strip(';').replace(' ', ''))
-
-# check remote jail snapshot number
-      zfs_snap = 0
-      stdin, stdout, stderr = ssh.exec_command("zfs list -t snapshot |grep %s" %  r_jail[0])
-      try:
-            for x in stdout:
-               zfs_snap = zfs_snap + 1
-      except:
-            zfs_snap = 0
-
- # check remote jail zfs quota      
-      jzfspath = r_zfs_home+r_jail[0]
-      stdin, stdout, stderr = ssh.exec_command("zfs get -H quota %s" % jzfspath)
-      try:
-            for x in stdout:
-               x = x.split('\t')
-               x = filter('', x)
-               r_zfs_quota = x[2]
-      except:
-            r_zfs_quota = 'none'
-
- # check remote jail zfs size      
-      jzfspath = r_zfs_home+r_jail[0]
-      stdin, stdout, stderr = ssh.exec_command("zfs list |grep %s" % jzfspath)
-      try:
-            for x in stdout:
-               list = x.split(' ')
-               list = [x for x in list if x]
-               r_zfs_used = list[1]+"/"+list[2]
-      except:
-            r_zfs_used = 'none'
-
-# remote host jail settings table 
-      r_jail_table = [[str(r_jail_active),  str(r_jail[4].replace('jid =', '' ).strip(';').replace(' ', '')), str(r_jail[0]),  str(r_jail[3].replace('host.hostname =', '' ).strip(';').replace(' ', '')),  str(r_jail[5].replace('$jip = ', '' ).strip(';').replace(' ', '').strip('"')), \
-      str(r_jail[6].replace('$jgw = ', '' ).strip(';').replace(' ', '').strip('"')),  "%s%s" % (r_zfs_home,  str(r_jail[0])), r_zfs_used, r_zfs_quota, zfs_snap ] ]
-      lmen = ["ACTIVE", "JID", "NAME", "HOSTNAME", "IP ADDRESS", "GATEWAY", "PATH", "USED/FREE SPACE", "ZFS QUOTA",  "SNAPHOST"]
-      print tabulate(r_jail_table,  lmen)
- 
-      while True:
-         yn = raw_input("Do you want to overwrite jail '%s' on host: '%s' (y/n): " % (jnid,  ssh_host[1]))
-      
-         if yn == "!":
-            print "            Interrupted by user"
-            return False
-
-         if yn in "nN":
-            print "            Interrupted by user"
-            return False
-         
-         if yn in "Yy":
-# stop jail if is running on remote system
-             stdin, stdout, stderr = ssh.exec_command("sudo jail -r %s" % jnid)
-             for i in stdout:
-                 print i
-# mark jail for  overwrite                 
-             jail_overwrite = 1
-             break
-   except:
-       print "No jail with name '%s' found on host: '%s'!" % (jnid , ssh_host[1])
-
-# Check for aveilable space on remote system
-   local_jail_size = local_jail[7].split('/')
-   print "Local jail '%s' space requirements: %s" % (jnid, local_jail_size[0])
-   
-   if local_jail_size[0][-1] == 'M':
-       local_jail_size_b =  float(local_jail_size[0][:-1]) * 1000 
-   if local_jail_size[0][-1] == 'G':
-       local_jail_size_b =  float(local_jail_size[0][:-1]) * 100000 
- 
-   if r_zfs_free[-1] == 'M':
-       r_zfs_free_b = float(r_zfs_free[:-1]) * 1000 
-   if r_zfs_free[-1] == 'G':
-       r_zfs_free_b = float(r_zfs_free[:-1]) * 100000 
-
-   if r_zfs_free_b <= local_jail_size_b:
-       print "ERROR: Not enough free space '%s': '%s' -> '%s'!" % (ssh_host[1],  r_zfs_home, r_zfs_free)
-       return False
-   else: 
-       print "Free space '%s': '%s' -> '%s'!" % (ssh_host[1],  r_zfs_home, r_zfs_free)
-# start jail migration
-   print ""
-   print "Jail '%s' will be migrated to host '%s'" %  (jnid,  ssh_host[1])
-   print "WARNING: Jadm cannot modify jail '%s' IPADDRESS and GATEWAY for remote system" % jnid
-   print "WARNING: Please do this manualy before start it on host: '%s' " % ssh_host[1]
-   if 'BASE_' in jnid:
-      print "WARNING: Jail '%s' use skeleton model, please check if you have same 'BASE' jail on remote system" % jnid 
-   while True:
-         yn = raw_input("Please confirm migration (y/n): ")
-         if yn == "!":
-            print "            Interrupted by user"
-            return False
-         if yn in "nN":
-            print "            Interrupted by user"
-            return False
-         if yn in "Yy":
-# get local jail configuration
-             local_jail_config = find_jail(jnid)[2][ find_jail(jnid)[0]:find_jail(jnid)[1]]
-             dt = str(datetime.now()) 
-             local_hostname = subprocess.check_output("hostname", shell=True)
-             local_jail_config[2] =  '# Jail "%s" was migrated from host: %s %s ... JADM ...'  % (jnid, local_hostname[:-1], dt)
-# taka hig JID and make number next for migrated jail             
-             jid_plus = sorted(remote_jails[2], key=int)
-             jid_plus =  jid_plus[-1]
-             local_jail_config[4] =  'jid = %s;' % (int(jid_plus) + 1)
-# check if jail is mark for overwrite and applay jail config directly to remote /etc/jail.conf file 
-             if jail_overwrite == 0:
-# append local jail config to remote /etc/jail.conf
-                 jc = open(jailconf_remote, 'a')
-                 jc.write('\n')
-                 jc.write('\n'.join(local_jail_config))
-                 jc.close()
-                 print "   '%s' config was appended to %s:/etc/jail.conf" % (jnid, ssh_host[1])
-                 
-             if jail_overwrite == 1:
-# replace local jail config to remote /etc/jail.conf
-                 r_jails = find_jail(jnid,  jailconf =jailconf_remote) 
-                 r_jail = r_jails[2][r_jails[0]:r_jails[1]]
-                 jb =  r_jails[0]
-                 je =  r_jails[1]
-                 jcl =  r_jails[2]
-                 jc = open(jailconf_remote, 'w')
-                 jcl[jb] = str(jnid)
-                 jcl[jb+2] = '# Jail "%s" was migrated from host: %s %s ... JADM ...'  % (jnid, local_hostname[:-1], dt)
-                 jcl[jb+3] = local_jail_config[3]
-                 jcl[jb+4] = local_jail_config[4]
-                 jcl[jb+5] = local_jail_config[5]
-                 jcl[jb+6] = local_jail_config[6]
-# replace local jail config for remote jail
-                 del jcl[jb+8:je-1]
-                 local_options = jb+7
-                 for i in local_jail_config[8:-1]:
-                     jcl.insert(local_options + 1, i)
-                 jc.write('\n'.join(jcl))
-                 jc.close()
-                 ssh.exec_command("sudo zfs destroy -r %s%s" % (r_zfs_home[1:], jnid) )
-                 print "WARNING: '%s:%s%s' zfs was destroyed!"  % (ssh_host[1],  r_zfs_home[1:], jnid) 
-# replace /etc/jail.conf on remote host 
-             jail_conf_rhome = '/usr/home/%s/jail.conf.%s' % (ssh_host[0],  local_hostname[:-1])
-             sftp.put(jailconf_remote, jail_conf_rhome)
-             ssh.exec_command("sudo cp -f %s /etc/jail.conf"  %  jail_conf_rhome)
-             print "   '%s' config was applayed in %s:/etc/jail.conf" % (jnid, ssh_host[1])
-# migrate zfs snapshot
-# password for ssh session should be entered again TO BE FIXED
-             temp_snapshot = "%s/%s@%s" % (jzfs, jnid, ssh_host[1])
-             try:
-                 subprocess.check_output("zfs snapshot -r %s" % temp_snapshot, shell=True)
-             except:
-                 subprocess.check_output("zfs destroy %s" % temp_snapshot, shell=True)
-                 subprocess.check_output("zfs snapshot -r %s" % temp_snapshot, shell=True)
-                 
-             print "   '%s' tempoary snapshot was created" % temp_snapshot
-             print "   ... moving '%s' tempoary snapshot to %s in process ..." % (temp_snapshot, ssh_host[1])
-             
-             subprocess.check_output("zfs send %s |ssh %s sudo zfs receive -F %s%s" % (temp_snapshot, remote, r_zfs_home[1:], jnid), shell=True)
-             print "   ... moving '%s' tempoary snapshot to %s cmplete!" % (temp_snapshot, ssh_host[1])
-             subprocess.check_output("zfs destroy %s" % temp_snapshot, shell=True)
-             print "   '%s' tempoary snapshot was destroyed" % temp_snapshot
-             ssh.exec_command("sudo zfs destroy %s%s@%s" % (r_zfs_home[1:], jnid, ssh_host[1]) )
-             print "   '%s%s@%s' tempoary snapshot on remote host '%s' was destroyed" % (r_zfs_home[1:], jnid, ssh_host[1], ssh_host[1])
-             subprocess.check_output("rm -rf %s" % jailconf_remote, shell=True)
-             print "   '%s' tempoary file was removed " %  jailconf_remote
-             print "Jail '%s' was migrated to host '%s' " %  (jnid,  ssh_host[1])
-             print ""
-             break
-
-#  close ssh connection
-   ssh.close()
-
 def skel_model(action, install_path_mp, install_path_zfs,  jname):
    """
 ########################################################################################
@@ -3739,22 +3466,6 @@ class lcmd(cmd.Cmd):
         """
         bridge()
 
-   '''
-   def do_migrate(self, arg):
-        """ Migrate jail from current system to remote system via ssh.
-(usage: migrate 'jailname/jid' 'username@ipaddress/hostname' 'ssh host password' )
-        """ 
-        arg = str(arg).split(' ')
-        arg = [i for i in arg if i != '']
-
-        if len(arg) == 3:
-           if "@" in arg[1]:
-              migrate(arg[0], arg[1], arg[2])
-           else:
-              print "       Please enter \'help migrate\' for valid commands!"
-        else:
-           print "       Please enter \'help migrate\' for valid commands!"
-   '''       
    def do_migrate(self, arg):
         """ Migrate jail from current system to remote system with socket server (AES encrypted)
         server usage:
@@ -3817,7 +3528,9 @@ class lcmd(cmd.Cmd):
         
 def welcome():
    '''
-       print welcome info on startup
+########################################################################################
+#       print welcome info on startup
+#
    '''
     
    jails = jails_list()
@@ -3858,14 +3571,15 @@ Check "help" and "introduction" commands how to use it
    
 
 def bytesto(bytes, to, bsize=1024):
-   """convert bytes to megabytes, etc.
-sample code:
-print('mb= ' + str(bytesto(314575262000000, 'm')))
-
-sample output:
-mb= 300002347.946
-
-   from: https://gist.github.com/shawnbutts/3906915
+   """
+########################################################################################
+# convert bytes to megabytes, etc.
+# sample code:
+# print('mb= ' + str(bytesto(314575262000000, 'm')))
+#
+# sample output:
+# mb= 300002347.946
+# from: https://gist.github.com/shawnbutts/3906915
    """
 
    a = {'K' : 1, 'M': 2, 'G' : 3, 'T' : 4, 'P' : 5, 'E' : 6 }
