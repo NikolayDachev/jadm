@@ -2870,6 +2870,12 @@ def migrateServer (servClient,  host,  port,  secret,  jnid, sshPassword):
             if mj[2] == jnid:
                for i in mj:
                   sendData.append(str(i))
+
+# get jail network options
+         jb, je, jcl = find_jail(jnid)
+         for i in jcl[jb+7:je]:
+            sendData.append(str(i))
+# add closseconn string at the end
          sendData.append('closeconn')
 # jadm client
          cmsg = jadm_client(host,  int(port),  secret, sendData)
@@ -2920,7 +2926,7 @@ def migrateServer (servClient,  host,  port,  secret,  jnid, sshPassword):
       ssh.close()
 # send confirmation for complete ZFS transfer
       try:
-         cmsg = jadm_client(host,  int(port),  secret, ['zfscomplete',  'closecon'])
+         cmsg = jadm_client(host,  int(port),  secret, ['zfscomplete',  'closeconn'])
          log(cmsg)
       except (KeyboardInterrupt,  OSError):
          log("       WARNING: jadm client> migration was stopped!")
@@ -3077,21 +3083,27 @@ def migrateServer (servClient,  host,  port,  secret,  jnid, sshPassword):
            log("       WARNING: jadm server> jadm server was stopped!")
            return False
 # wait for zfs confirmation transfer
-        log("       INFO: jadm server> Waiting '%s' to complete zfs transfer for jail '%s'" % (host,  jnid))
+        log("       INFO: jadm server> Waiting '%s' to complete zfs transfer for jail '%s'" % (r_srcip, jname))
         try:
-            recvData = jadm_server(host, int(port),  secret)
+            ZFSrecvData = jadm_server(host, int(port),  secret)
         except (KeyboardInterrupt,  OSError):
            log("       WARNING: jadm server> jadm server was stopped!")
            return False
-        log("       INFO: jadm server> Zfs transfer from '%s' successful complete for jail '%s'" % (host,  jnid)) 
+        if ZFSrecvData[0] == 'zfscomplete':
+           log("       INFO: jadm server> Zfs transfer from '%s' successful complete for jail '%s'" % (r_srcip,  jname))
+ 
 # append new jail to jails.conf
-        log("       INFO: jadm server> Append '%s' jail to $s" % (host,  jailconf))
+        log("       INFO: jadm server> Append '%s' jail to '%s'" % (jname,  jailconf))
         dt = str(datetime.now())
-        newjail = [' \n', jname, '{', "# Jail '%s' was received from '%s' on by ... JADM ..." % (jname, host,dt), 'host.hostname = %s;' % (jhostname), 'jid = %s;' % (jid), '$jip = "%s";' % (jip), '$jgw = "%s";' % (jgw), '### jail local options ###', '}']
+        newjail = [' \n', jname, '{', "# received from '%s' on %s by ... JADM ..." % (r_srcip, dt), 'host.hostname = %s;' % (jhostname), 'jid = %s;' % (jid), '$jip = "%s";' % (jip), '$jgw = "%s";' % (jgw) ]
+# append jail ntewrok settings
+        for othercfg in recvData[10:-1]:
+           newjail.append(othercfg)
+
         jc = open(jailconf, 'a')
         jc.write('\n'.join(newjail)) 
         jc.close()
-        log("       INFO: jadm server> New jail '%s' was successful transfered from %s" % (jname,  host))
+        log("       INFO: jadm server> New jail '%s' was successful transfered from %s" % (jname,  r_srcip))
         
 # print warnings
         if notes[3] != 'OK':
