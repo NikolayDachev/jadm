@@ -52,7 +52,7 @@ import base64
 ########################################################################################
 
 # jadm version
-jadm_version = "ver. 0.92_4-BETA"
+jadm_version = "ver. 0.92_5-BETA"
 
 # jail.conf location by default /etc/jail.conf
 jailconf = '/etc/jail.conf' 
@@ -2785,7 +2785,7 @@ def aes(data, secret ,encdec):
       decoded = DecodeAES(cipher, data)
       return decoded
 
-def migrateServer (servClient,  host,  port,  secret,  jnid, sshPassword):
+def migrateServer (servClient,  host,  port,  secret,  jnid):
     '''
 ########################################################################################
 #       migrate jail via socket server
@@ -2850,7 +2850,7 @@ def migrateServer (servClient,  host,  port,  secret,  jnid, sshPassword):
       try:
          ssh = paramiko.SSHClient()
          ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-         ssh.connect(host, username= sshUser,  password=sshPassword)
+         ssh.connect(host, username= sshUser,  key_filename='/root/.ssh/id_rsa.pub')
          sftp = ssh.open_sftp()
       except paramiko.AuthenticationException:
          log("       ERROR: jadm client> Authentication failed when connecting to '%s'" % host)
@@ -3467,30 +3467,39 @@ class lcmd(cmd.Cmd):
         bridge()
 
    def do_migrate(self, arg):
-        """ Migrate jail from current system to remote system with socket server (AES encrypted)
+        """ Migrate jail to remote system 
+            1. server/client comunicate with jadm socket server (AES encrypted)
+               - password for AES encription must be exactly 16 symbols if not jadm will add '0'
+            2. ssh public key for current user must be added to remote user@server:~/.ssh/authorized_keys 
+               - remote user should be able to use (sudo zfs receive), do not use root!
+               - zfs pool will be transferd via ssh
+            3. start server on remote machine before client on local
+
         server usage:
-           migrate server (ip address: def *) (port: def 4555) (server password)
-            - password for AES encription must be exactly 16 symbols if not jadm will add '0'
+          migrate server (ip address: def *) (port: def 4555) (server password)
+
         client usage:
-           migrate client (remote user@host/ip) (remote port) (ssh password)  (server password) (jailname/id)
+          migrate client (remote user@host/ip) (remote port: def 4555) (server password) (jailname/id)
         """ 
         arg = str(arg).split(' ')
         arg = [i for i in arg if i != '']
 
         if len(arg) >= 2:
            if arg[0] == 'server':
-               if len(arg) == 3:
-                  migrateServer(arg[0],  arg[1],  arg[2],  arg[3],  'None',  'None')
-               elif len(arg) == 2:
-                   migrateServer(arg[0],  'None',  'None', arg[1] ,  'None',  'None')
-               else:
-                  print "       Please enter \'help migrate\' for valid commands!" 
+              if len(arg) == 3:
+                    migrateServer(arg[0],  arg[1],  arg[2],  arg[3],  'None')
+              elif len(arg) == 2:
+                    migrateServer(arg[0],  'None',  'None', arg[1] ,  'None')
+              else:
+                 print "       Please enter \'help migrate\' for valid commands!" 
                   
            elif arg[0] == 'client':
-               if len(arg) == 6:
-                   if '@' in arg[1]:
-                      migrateServer(arg[0],  arg[1],  arg[2],  arg[4],  arg[5],  arg[3])
-                   else:
+               if '@' in arg[1]:
+                  if len(arg) == 5:
+                      migrateServer(arg[0],  arg[1],  arg[2],  arg[3],  arg[4])
+                  elif len(arg) == 4:
+                      migrateServer(arg[0],  arg[1],  'None',  arg[2],  arg[3])                   
+                  else:
                       print "       Please enter \'help migrate\' for valid commands!" 
                else:
                   print "       Please enter \'help migrate\' for valid commands!" 
