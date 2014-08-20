@@ -5,12 +5,14 @@ TO DO list: not in order
 DONE - 1. check for "dying" jail start/stop (active mark as d)
 DONE - 2. def() organizations
 DONE - 3. jadm python comments
-IN PROCESS 4. skelton jails support
-5. BASE jail start/update 
-IN PROCESS 6. msg fix 
-8. man update/fix
-9. freebsd port update/fix (do not use)
+DONE - 4. skelton jails support
+DONE - 5. BASE jail start/update 
+DONE - 6. msg fix
+DONE - 8. vnet / novnet jails (jail.conf structure was changed) 
+9. man update/fix
+10. freebsd port update/fix (do not use)
 11. migration skeleton model support 
-12. other 
+12. cxfreeze --include-modules=datetime,tabulate,ipaddress,os,sys,subprocess,netifaces,cmd,paramiko,socket,Crypto.Cipher,base64 ./jadm
+13. other 
 ...
 
