@@ -115,14 +115,35 @@ def initcheck():
 #
    """
    check_jailconf = os.path.isfile(jailconf)
+   check_var_jailconf = ['$jzfs', '$jedir', '$bridge', '$epair', '$a', '$b', '$newmac']
+
    if check_jailconf == False:
 # print and add to log file            
-      logmsg = "      WARNING: /etc/jail.conf not exist initsetup will be started..."
-      log(logmsg)  
- 
+      logmsg = "      WARNING: '%s' not exist initsetup will be started..." % jailconf
+      log(logmsg)
       initsetup()
       return False
 
+   else:
+      jc = open(jailconf, 'r')
+      jcCheck = []
+
+      for i in jc:
+         i = i.split()
+         if len(i) > 0:
+            jcCheck.append(i[0])
+
+      exist = 0
+      for i in check_var_jailconf:
+         if i in jcCheck:
+            exist += 1
+
+      if exist != len(check_var_jailconf):
+          logmsg =  "      WARNING: '%s' is not in JADM format, initsetup will be started..." % jailconf
+          log(logmsg)
+          initsetup()
+          return False
+        
 def def_vars():
    """
 ########################################################################################
