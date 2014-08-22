@@ -7,35 +7,6 @@ At the moment is in development process, still alot of functions should be teste
 
 Any 'bug' which is reported to jadm@dachev.info will help me to speed up development process
 
-JADM Quality Assurances steps to release ver 1.0
-Before final release all current JADM functions should work without issue
-~~ * initsetup ~~
-* setup
-* create
-* modify
-* destroy
-* remove
-* migrate
-* snap
-* start
-* stop
-* reboot
-* shell
-* global
-* local
-* gateways
-* list
-* ls
-* introduction
-* about
-* help
-* verbose
-* log
-* exit
-* quit
-# jadm should have and bin format
-* cxfreeze --include-modules=datetime,tabulate,ipaddress,os,sys,subprocess,netifaces,cmd,paramiko,socket,Crypto.Cipher,base64 ./jadm
-
 
 
 Information:
