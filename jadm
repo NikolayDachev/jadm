@@ -2064,6 +2064,12 @@ def initsetup():
                 if check_jailconf == False:
                    sys.exit(0)
                    return False
+# check if $japth content '/' if not add it
+              if jpath[0] != '/':
+                 jpath = "/%s" % jpath
+              if jpath[-1] != '/':
+                 jpath = "%s/" % jpath
+
 # check if mount point exitst
               zfsmount = os.path.isdir(jpath)
               if zfsmount == True:
@@ -2076,11 +2082,6 @@ def initsetup():
                  else:
                     continue
               else:
-# check if $japth content '/' if not add it
-                 if jpath[0] != '/':
-                    jpath = "/%s" % jpath
-                 if jpath[-1] != '/':
-                    jpath = "%s/" % jpath
                  os.system('zfs set mountpoint=%s %s' % (jpath, jzfs))
                  break
          break
