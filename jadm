@@ -2132,7 +2132,6 @@ def setup():
       jcs_list.append(i)
    jcs.close()
  
-   print "      JADM Default Settings"
    print " " 
    set_menu  = ['JADM', 'Settings']
    bz = [["Bridge interface:", bridge_int], ["Main zfs:", jzfs]]
@@ -2140,13 +2139,11 @@ def setup():
    print " "
   
    ch_choise = ['bridge', 'zfs', '!'] 
-   print "       To change settings type 'bridge', 'zfs' or '!' for exit"
    while True:
-      choise = raw_input("Do you want to change :> ")
+      choise = raw_input("change (bridge|zfs|!):> ")
       
       if choise == 'bridge':
          print " "
-         print "   Check for existing Bridge interfces ..."
          
          br_interface = []
          bridges_sys = []
@@ -2166,40 +2163,45 @@ def setup():
                br_interface.append([' ', ' ', i['addr'], i['netmask']])
                gw_ipaddr.append(i['addr'])
                br_count = br_count + 1
-            br_interface[br_count - 1][1] = x
-            br_interface[br_count - 1][0] = gw_number
+            br_interface[br_count - 1][1] = str(x)
+            br_interface[br_count - 1][0] = str(gw_number)
             gw_number = gw_number + 1
-           
+
          br_menu = ["Number", "Bridge name", "Gateway IP Address", "Gatewy Network Mask"]
          print tabulate(br_interface, br_menu)
          print " "
   
-         print "       Enter Bridge interface number or ! for exit"
          while True:
-            brid = raw_input("       Bridge number(old: %s):> " % (bridge_int))
+            brid = raw_input("bridge number(old: %s):> " % (bridge_int))
             if brid == "!":
-               print "            Interrupted by user - !"
+               log("      INFO: Interrupted by user")
                return False
             
             try:
                int(brid)
             except ValueError:
-               print "            Slecet valid Bridge number (%s - %s)!" % (0, len(bridges_sys) - 1)
+               msg = "      ERROR: slecet valid Bridge number (%s - %s)!" % (0, len(bridges_sys) - 1)
+               log(msg)
                continue
    
             if int(brid) >= len(bridges_sys):
-               print "            Slecet valid Bridge number (%s - %s)!" % (0, len(bridges_sys) - 1)
+               msg = "      ERROR: slecet valid Bridge number (%s - %s)!" % (0, len(bridges_sys) - 1)
+               log(msg)
                continue
    
             brid = bridges_sys[int(brid)]
-
+# check if we use the same brige
+            if bridge_int == brid:
+               log("      INFO: bridge interface was not changed")
+               return False
+ 
             # update $bridge in jail.conf
             for i in jcs_list:
                if "$bridge" in i:
                   update_jcs = jcs_list.index(i)
                   jcs_list[update_jcs] = '$bridge = "%s";\n' % (brid)
-                  print " "
-                  print "          WARNING please modify all jails for new '%s' networks!"  % (brid)
+                  msg = "      WARNING: please modify all jails for new '%s' networks!"  % (brid)
+                  log(msg)
                   break
 
             break
@@ -2210,93 +2212,132 @@ def setup():
          os.system("zpool list")
          print " "
          os.system("zfs list")
-         print " "
-         print "       Enter ZFS main JADM tank folder, all jails will be created under it (zpool/tank) or ! for exit"
-         print " "
-         print "       WARNING: JADM will rename all existing jails zfs under new zfs tank :WARNING"
+         log("      WARNING: JADM will rename all existing jails zfs :WARNING")
          print " "
 
          while True:
-            chjzfs = raw_input("       Enter zpool/tank(ols %s):> " % (jzfs))
+            chjzfs = raw_input("zpool/tank:> ")
             if chjzfs == "!":
-               print "            Interrupted by user - !"
-               return False
-   
+               log("      INFO: Interrupted by user")
+     
             zfs = subprocess.check_output("zfs list -H -o name", shell=True)
             zfs = zfs.split('\n')
             if chjzfs in zfs:
-                print " "
-                print "       -- We will use existing zpool/tank: %s" % (jzfs)
- 
-                for i in jails[1]:
-                   if os.WEXITSTATUS(os.system("zfs rename %s %s" % (jzfs+"/"+i, chjzfs+"/"+i))) != 0:
-                      print "       --- WARNING: '%s' cannot be renamed to '%s' - skipped!" % (jzfs+"/"+i, chjzfs+"/"+i)
-                      print "       --- WARNING: '%s' data weill be keepd!" % (jzfs+"/"+i)
-                      print "       --- WARNING: Please move manualy '%s' to '%s' before destroy '%s'" % (jzfs+"/"+i, chjzfs+"/"+i, jzfs)
-                   else:
-                      print "       --- '%s' was rename to '%s'" % (jzfs+"/"+i, chjzfs+"/"+i)
+               print " "
+               print "      INFO: We will use existing zpool/tank: %s" % (chjzfs)
+               chjpath = subprocess.check_output('zfs list -H -o mountpoint %s' % chjzfs, shell = True)
+               chjpath = chjpath.strip('\n')
+# check if exsiting zfs tank have mount point
+               if chjpath == 'none':
+                   print " "
+                   print "      WARNING: '%s' have '%s' for mount point" % (chjzfs, chjpath)
+                   print "      WARNING: Please create mount point for '%s' or select different zroot/tank" % chjzfs
+                   continue
+               break
 
-                jzfsyes = ""
-                jzfsyes = raw_input("       --  Do you want to destroy old zfs '%s' tank (yes only):> " % (jzfs))
-                if jzfsyes == "yes":
-                   if os.WEXITSTATUS(os.system("zfs destroy -r %s" % (jzfs))) !=0:
-                      print "error!"
-                   else:
-                      print "       --- '%s' was destroyed!" % (jzfs)
-                elif jzfsyes != "yes":
-                   print "       --- '%s' was keeped!" % (jzfs)
-
-                break
-   
             if os.WEXITSTATUS(os.system("zfs create %s" % (chjzfs))) != 0:
                 print " "
-                print "       Please enter correct zfs!"
+                print "      ERROR: Please enter correct zfs!"
                 continue
             else:
-                print "       --  New zfs '%s' tank was create!" % (chjzfs)
+                while True:
+                 chjpath = raw_input("%s mount point:> " % (chjzfs))
+                 if chjzfs == "!":
+                   print " "
+                   print "      INFO: Interrupted by user"
+                   check_jailconf = os.path.isfile(jailconf)
+                   if check_jailconf == False:
+                      sys.exit(0)
+                      return False
+# check if $japth content '/' if not add it
+                 if chjpath[0] != '/':
+                    chjpath = "/%s" % chjpath
+                 if chjpath[-1] != '/':
+                    chjpath = "%s/" % chjpath
+      
+# check if mount point exitst
+                 zfsmount = os.path.isdir(chjpath)
+                 if zfsmount == True:
+                    print " "
+                    print "      ERROR: %s mount point exist!" % chjpath
+                    yn = raw_input('use it anyway (yes): ')
+                    if 'yes' in yn:
+                       os.system('zfs set mountpoint=%s %s' % (chjpath, chjzfs))
+                       break
+                    else:
+                       continue
+                 else:
+                    os.system('zfs set mountpoint=%s %s' % (chjpath, chjzfs))
+                    break
+            break
 
-                for i in jails[1]:
-                   if os.WEXITSTATUS(os.system("zfs rename %s %s" % (jzfs+"/"+i, chjzfs+"/"+i))) != 0:
-                      print "       --- WARNING: '%s' cannot be renamed to '%s' - skipped!" % (jzfs+"/"+i, chjzfs+"/"+i)
-                      print "       --- WARNING: '%s' data weill be keepd!"  % (jzfs+"/"+i)
-                      print "       --- WARNING: Please move manualy '%s' to '%s' before destroy '%s'" % (jzfs+"/"+i, chjzfs+"/"+i, jzfs)
-                   else:
-                      print "       --- '%s' was rename to '%s'" % (jzfs+"/"+i, chjzfs+"/"+i)
-             
-                jzfsyes = ""
-                jzfsyes = raw_input("       --  Do you want to destroy old zfs '%s' tank (yes only):> " % (jzfs))
-                if jzfsyes == "yes":
-                   if os.WEXITSTATUS(os.system("zfs destroy -r %s" % (jzfs))) !=0:
-                      print "error!"
-                   else:
-                      print "       --- '%s' was destroyed!" % (jzfs)
-                elif jzfsyes != "yes":
-                   print "       --- '%s' was keeped!" % (jzfs)
+# try to rename all jails
+         base = 0
+         jbase = 0
+         for i in jails[1]:
+            if 'BASE' in i:
+               base = 1
+            if 'BASE-' in i:
+                jbase = 1
+                
+            orgJZFS = jzfs+"/"+i
+            orgJPATH = jpath + i
+            
+            newJZFS = chjzfs+"/"+i
+            newJPATH = chjpath + i
+            
+            if os.WEXITSTATUS(os.system("zfs rename %s %s" % (orgJZFS, newJZFS))) != 0:
+               print "       --- WARNING: '%s' cannot be renamed to '%s' - skipped!" % (orgJZFS, newJZFS)
+               print "       --- WARNING: Please move manualy '%s' to '%s' before destroy '%s'" % (orgJZFS, newJZFS,  jzfs)
+            else:
+               print "       --- '%s' was rename to '%s'" % (orgJZFS, newJZFS)
+               
+            if os.WEXITSTATUS(os.system('zfs set mountpoint=%s %s' % (newJPATH,  newJZFS))) != 0:
+               print "       --- WARNING: '%s' cannot be renamed to '%s' - skipped!" % (orgJPATH,  newJPATH)
+               print "       --- WARNING: Please move manualy '%s' to '%s' before destroy '%s'" % (orgJPATH,  newJPATH,   jpath)
+            else:
+               print "       --- '%s' was rename to '%s'" % (orgJPATH,  newJPATH)
+            base = 0
+            jbase = 0
 
-                break
-
-         # update $jedir in jail.conf
+         jzfsyes = ""
+         jzfsyes = raw_input("destroy old zfs '%s' (yes only):> " % (jzfs))
+         if jzfsyes == "yes":
+            if os.WEXITSTATUS(os.system("zfs destroy -r %s" % (jzfs))) !=0:
+               print "error!"
+            else:
+               print "       --- '%s' was destroyed!" % (jzfs)
+         elif jzfsyes != "yes":
+               print "       --- '%s' was keeped!" % (jzfs)
+   
+# update $jedir in jail.conf
+         for i in jcs_list:
+            if "$jzfs" in i:
+               update_jcs = jcs_list.index(i)
+               jcs_list[update_jcs] = '$jzfs = "%s";\n' % (chjzfs)
+               break
+               
          for i in jcs_list:
             if "$jedir" in i:
                update_jcs = jcs_list.index(i)
-               jcs_list[update_jcs] = '$jedir = "/%s/";\n' % (chjzfs)
+               jcs_list[update_jcs] = '$jedir = "%s";\n' % (chjpath)
                break
-         break
 
+         break
+               
       elif choise == '!':
-         print "            Interrupted by user - !"
+         log("      INFO: Interrupted by user")
          return False
       else:
-         print "       To change settings type 'bridge', 'mzfs' or '!' for exit"
+         log("      INFO: To change setting type 'bridge', 'zfs' or '!' for exit")
    
 # check if jail.conf exist
    check_jailconf = os.path.isfile(jailconf)
    if check_jailconf == True:
       dt = datetime.now().strftime("%d_%m_%y_%I%M%S")
       os.system("cp %s %s" % (jailconf, jailconf+"."+dt))
-      print " "
-      print "          '%s' exist we make a backup: %s" % (jailconf, jailconf+"."+dt)
-      print " "
+      msg = "      INFO: make a backup: %s" % (jailconf+"."+dt)
+      log(msg)
 
 # write jail.conf file
    jcs = open(jailconf, 'w+')
@@ -2306,18 +2347,12 @@ def setup():
 
    def_vars()   
    print " "
-   print "          JADM NEW Settings"
-   print " "
    set_menu  = ['JADM', 'Settings']
    bz = [["Bridge interface:", bridge_int], ["Main zfs:", jzfs]]
    print tabulate(bz, set_menu)
-   print " "
    
 # print and add to log file            
-   logmsg = "WARNING: Jadm SETUP was modified"
-   log(logmsg)     
-
-   jail_start_stop('start', 'all') # start ALL jail befor other action
+   log("      WARNING: Jadm SETUP was modified")
 
 def about():
    """
