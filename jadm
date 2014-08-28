@@ -2124,7 +2124,6 @@ def setup():
    jails = jails_list()
 
    jail_start_stop('stop', 'all') # stop ALL jail befor other action
-   print jails[1]
 
 # Read jail.conf file 
    jcs = open(jailconf, 'r')
@@ -2132,7 +2131,7 @@ def setup():
    for i in jcs:
       jcs_list.append(i)
    jcs.close()
- 
+
    print " " 
    set_menu  = ['JADM', 'Settings']
    bz = [["Bridge interface:", bridge_int], ["Main zfs:", jzfs]]
@@ -2318,6 +2317,16 @@ def setup():
             
             newJZFS = chjzfs+"/"+i
             newJPATH = chjpath + i
+# zfs fix BASE-
+            if 'BASE-' in i:
+
+               orgJZFS = jzfs+"/BASE-RW/"+i
+               orgJPATH = jpath + "BASE-RW/" +i
+            
+               newJZFS = chjzfs+"/BASE-RW/"+i
+               newBJPATH = newJPATH
+               newJPATH = chjpath + "BASE-RW/" + i
+               
 # rename jaisl zfs
             if os.WEXITSTATUS(os.system("zfs rename %s %s" % (orgJZFS, newJZFS))) != 0:
                msg = "      ERROR: '%s' cannot be renamed to '%s' - skipped!" % (orgJZFS, newJZFS)
@@ -2335,10 +2344,7 @@ def setup():
                   else:
                      msg = "      INFO: '%s' was rename to '%s'" % ( jzfs+"/"+ i +'-SKELETON', chjzfs+"/"+i +'-SKELETON')
                      log(msg)
-# zfs fix BASE-
-               if 'BASE-' in i:
-                      pass
-                
+                     
                print "      INFO: '%s' was rename to '%s'" % (orgJZFS, newJZFS)
 # rename jails mountpoint
             if os.WEXITSTATUS(os.system('zfs set mountpoint=%s %s' % (newJPATH,  newJZFS))) != 0:
@@ -2357,10 +2363,30 @@ def setup():
                   else:
                      msg = "      INFO: '%s' was rename to '%s'" % (jpath + i +'-SKELETON', chjpath + i +'-SKELETON')
                      log(msg)
-# zfs fix BASE-
+# create mount folder for BASE- jail
                if 'BASE-' in i:
-                   pass
+                  os.system('mkdir -p %s/%s' % (newBJPATH,  i))
+                  msg = ("      INFO: '%s/%s' was created" % (newBJPATH,  i))
+                  log(msg)
+                  
+# update BASE- jail mount.fstab and /etc/fstab
+                  fj = find_jail(i)
+                  jb = fj[0]
+                  je = fj[1]
+                  jcl = fj[2]
 
+                  dt = str(datetime.now())                
+                  jcs_list[jb+2] = '# modified on %s by ... JADM ...\n' % (dt)
+
+# check if jail mark  as BASE skeleton model and fix mount 'exec.prestart +=' local options
+                  os.system('echo \"%sBASE %s nullfs ro 0 0\" > %s/etc/fstab' % (chjpath,  newBJPATH,  newJPATH))
+                  os.system('echo \"%s %s%s/SROOT nullfs rw 0 0\" >> %s/etc/fstab' % (newJPATH, chjpath, i,  newJPATH))
+# check if is vnet
+                  if jcs_list[jb+8] != 'vnet;':
+                     jcs_list[jb+23] = 'mount.fstab="%s/etc/fstab";\n' % (newJPATH)
+                  else:
+                     jcs_list[jb+12] = 'mount.fstab="%s/etc/fstab";\n' % (newJPATH)
+                  
                msg = "      INFO: '%s' was rename to '%s'" % (orgJPATH,  newJPATH)
                log(msg)
 
@@ -2378,7 +2404,7 @@ def setup():
          elif jzfsyes != "yes":
                msg = "      INFO: '%s' was keeped!" % (jzfs)
                log(msg)
-   
+
 # update $jedir in jail.conf
          for i in jcs_list:
             if "$jzfs" in i:
