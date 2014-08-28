@@ -2124,6 +2124,7 @@ def setup():
    jails = jails_list()
 
    jail_start_stop('stop', 'all') # stop ALL jail befor other action
+   print jails[1]
 
 # Read jail.conf file 
    jcs = open(jailconf, 'r')
@@ -2217,14 +2218,36 @@ def setup():
 
          while True:
             chjzfs = raw_input("zpool/tank:> ")
-            if chjzfs == "!":
+            if chjzfs  == "!":
                log("      INFO: Interrupted by user")
+               return False
+            if chjzfs == jzfs:
+               msg = "      ERROR: '%s' is current zfs please choose different!" % (chjzfs)
+               log(msg)
+               continue
      
             zfs = subprocess.check_output("zfs list -H -o name", shell=True)
             zfs = zfs.split('\n')
             if chjzfs in zfs:
-               print " "
-               print "      INFO: We will use existing zpool/tank: %s" % (chjzfs)
+               msg = "      INFO: We will use existing zpool/tank: %s" % (chjzfs)
+               log(msg)
+               print "      WARNING: '%s' will be destroyed!" % (chjzfs)
+               yn = raw_input('use it anyway (yes):> ')
+               if yn  == "!":
+                  log("      INFO: Interrupted by user")
+                  return False
+# destroy existing ZFS
+               if yn  != "yes":
+                  log("      INFO: Interrupted by user")
+                  return False
+               else:
+                  if os.WEXITSTATUS(os.system("zfs destroy -r %s" % (chjzfs))) !=0:
+                     msg = "      ERROR:'%s' cannot be destroyed!" % (chjzfs)
+                     log(msg)
+                  else:
+                     msg = "      WARNING:'%s' was destroyed!" % (chjzfs)
+                     log(msg)
+               ''''
                chjpath = subprocess.check_output('zfs list -H -o mountpoint %s' % chjzfs, shell = True)
                chjpath = chjpath.strip('\n')
 # check if exsiting zfs tank have mount point
@@ -2234,7 +2257,7 @@ def setup():
                    print "      WARNING: Please create mount point for '%s' or select different zroot/tank" % chjzfs
                    continue
                break
-
+             '''
             if os.WEXITSTATUS(os.system("zfs create %s" % (chjzfs))) != 0:
                 print " "
                 print "      ERROR: Please enter correct zfs!"
@@ -2242,13 +2265,14 @@ def setup():
             else:
                 while True:
                  chjpath = raw_input("%s mount point:> " % (chjzfs))
-                 if chjzfs == "!":
-                   print " "
-                   print "      INFO: Interrupted by user"
-                   check_jailconf = os.path.isfile(jailconf)
-                   if check_jailconf == False:
-                      sys.exit(0)
-                      return False
+                 if chjpath == "!":
+                   log("      INFO: Interrupted by user")
+                   return False
+                 if chjpath == jpath:
+                    msg = "      ERROR: '%s' is current mount point please choose different!" % (chjpath)
+                    log(msg)
+                    continue  
+                
 # check if $japth content '/' if not add it
                  if chjpath[0] != '/':
                     chjpath = "/%s" % chjpath
@@ -2260,7 +2284,7 @@ def setup():
                  if zfsmount == True:
                     print " "
                     print "      ERROR: %s mount point exist!" % chjpath
-                    yn = raw_input('use it anyway (yes): ')
+                    yn = raw_input('use it anyway (yes):> ')
                     if 'yes' in yn:
                        os.system('zfs set mountpoint=%s %s' % (chjpath, chjzfs))
                        break
@@ -2271,44 +2295,89 @@ def setup():
                     break
             break
 
+# create BASE-RW
+         if 'BASE' in jails[1]:
+             if os.WEXITSTATUS(os.system("zfs create %s" % (chjzfs+"/BASE-RW"))) != 0:
+               msg = "      ERROR: '%s' cannot be created!" % (chjzfs+"/BASE-RW")
+               log(msg)
+               return False
+             else:
+               if os.WEXITSTATUS(os.system('zfs set mountpoint=%s %s' % (chjpath + "BASE-RW",  chjzfs+"/BASE-RW"))) != 0:
+                  msg = "      ERROR: '%s' cannot be created!" % (chjpath + "BASE-RW")
+                  log(msg)
+                  return False
+               else:
+                  msg = "      INFO: '%s' was created!" % (chjzfs+"/BASE-RW")
+                  log(msg)
+                  
 # try to rename all jails
-         base = 0
-         jbase = 0
          for i in jails[1]:
-            if 'BASE' in i:
-               base = 1
-            if 'BASE-' in i:
-                jbase = 1
-                
+             
             orgJZFS = jzfs+"/"+i
             orgJPATH = jpath + i
             
             newJZFS = chjzfs+"/"+i
             newJPATH = chjpath + i
-            
+# rename jaisl zfs
             if os.WEXITSTATUS(os.system("zfs rename %s %s" % (orgJZFS, newJZFS))) != 0:
-               print "       --- WARNING: '%s' cannot be renamed to '%s' - skipped!" % (orgJZFS, newJZFS)
-               print "       --- WARNING: Please move manualy '%s' to '%s' before destroy '%s'" % (orgJZFS, newJZFS,  jzfs)
+               msg = "      ERROR: '%s' cannot be renamed to '%s' - skipped!" % (orgJZFS, newJZFS)
+               log(msg)
+               msg = "      WARNING: Please move manualy '%s' to '%s' before destroy '%s'" % (orgJZFS, newJZFS,  jzfs)
+               log(msg)
             else:
-               print "       --- '%s' was rename to '%s'" % (orgJZFS, newJZFS)
-               
+# zfs fix BASE-SKE:ETON
+               if i =='BASE':
+                  if os.WEXITSTATUS(os.system("zfs rename %s %s" % ( jzfs+"/"+ i +'-SKELETON', chjzfs+"/"+i +'-SKELETON'))) != 0:
+                     msg = "      ERROR: '%s' cannot be renamed to '%s' - skipped!" % ( jzfs+"/"+ i +'-SKELETON', chjzfs+"/"+i +'-SKELETON')
+                     log(msg)
+                     msg = "      WARNING: Please move manualy '%s' to '%s' before destroy '%s'" % ( jzfs+"/"+ i +'-SKELETON', chjzfs+"/"+i +'-SKELETON',  jzfs)
+                     log(msg)
+                  else:
+                     msg = "      INFO: '%s' was rename to '%s'" % ( jzfs+"/"+ i +'-SKELETON', chjzfs+"/"+i +'-SKELETON')
+                     log(msg)
+# zfs fix BASE-
+               if 'BASE-' in i:
+                      pass
+                
+               print "      INFO: '%s' was rename to '%s'" % (orgJZFS, newJZFS)
+# rename jails mountpoint
             if os.WEXITSTATUS(os.system('zfs set mountpoint=%s %s' % (newJPATH,  newJZFS))) != 0:
-               print "       --- WARNING: '%s' cannot be renamed to '%s' - skipped!" % (orgJPATH,  newJPATH)
-               print "       --- WARNING: Please move manualy '%s' to '%s' before destroy '%s'" % (orgJPATH,  newJPATH,   jpath)
+               msg =  "      ERROR: '%s' cannot be renamed to '%s' - skipped!" % (orgJPATH,  newJPATH)
+               log(msg)
+               msg =  "      WARNING: Please move manualy '%s' to '%s' before destroy '%s'" % (orgJPATH,  newJPATH,   jpath)
+               log(msg)
             else:
-               print "       --- '%s' was rename to '%s'" % (orgJPATH,  newJPATH)
-            base = 0
-            jbase = 0
+# mount point fix BASE-SKELETON
+               if i =='BASE':
+                  if os.WEXITSTATUS(os.system('zfs set mountpoint=%s %s' % (chjpath + i +'-SKELETON',  chjzfs+"/"+i +'-SKELETON'))) != 0:
+                     msg = "      ERROR: '%s' cannot be renamed to '%s' - skipped!" % (jpath + i +'-SKELETON',  chjpath + i +'-SKELETON')
+                     log(msg)
+                     msg = "      WARNING: Please move manualy '%s' to '%s' before destroy '%s'" % (jpath + i +'-SKELETON',  chjpath + i +'-SKELETON',  jzfs)
+                     log(msg)
+                  else:
+                     msg = "      INFO: '%s' was rename to '%s'" % (jpath + i +'-SKELETON', chjpath + i +'-SKELETON')
+                     log(msg)
+# zfs fix BASE-
+               if 'BASE-' in i:
+                   pass
+
+               msg = "      INFO: '%s' was rename to '%s'" % (orgJPATH,  newJPATH)
+               log(msg)
 
          jzfsyes = ""
          jzfsyes = raw_input("destroy old zfs '%s' (yes only):> " % (jzfs))
          if jzfsyes == "yes":
             if os.WEXITSTATUS(os.system("zfs destroy -r %s" % (jzfs))) !=0:
-               print "error!"
+               msg = "      ERROR:'%s' cannot be destroyed!" % (jzfs)
+               log(msg)
             else:
-               print "       --- '%s' was destroyed!" % (jzfs)
+               os.system('chflags -R 0 %s' %  jpath)
+               os.system('rm -rf %s' % jpath)
+               msg = "      WARNING:'%s' was destroyed!" % (jzfs)
+               log(msg)
          elif jzfsyes != "yes":
-               print "       --- '%s' was keeped!" % (jzfs)
+               msg = "      INFO: '%s' was keeped!" % (jzfs)
+               log(msg)
    
 # update $jedir in jail.conf
          for i in jcs_list:
@@ -2723,7 +2792,7 @@ def log(string):
 # usage: log('log string or var')
 #
     """
-    print " "
+
     print string
 
 # data and time
