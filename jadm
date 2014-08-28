@@ -2382,7 +2382,7 @@ def setup():
                   os.system('echo \"%sBASE %s nullfs ro 0 0\" > %s/etc/fstab' % (chjpath,  newBJPATH,  newJPATH))
                   os.system('echo \"%s %s%s/SROOT nullfs rw 0 0\" >> %s/etc/fstab' % (newJPATH, chjpath, i,  newJPATH))
 # check if is vnet
-                  if jcs_list[jb+8] != 'vnet;':
+                  if 'vnet;' in jcs_list[jb+8]:
                      jcs_list[jb+23] = 'mount.fstab="%s/etc/fstab";\n' % (newJPATH)
                   else:
                      jcs_list[jb+12] = 'mount.fstab="%s/etc/fstab";\n' % (newJPATH)
