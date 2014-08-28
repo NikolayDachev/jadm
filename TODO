@@ -3,7 +3,7 @@ JADM Quality Assurances steps to release ver 1.0
 Before final release all current JADM functions should work without issue
 
 OK - initsetup
-* setup
+OK - setup
 * create
 * modify
 * destroy
