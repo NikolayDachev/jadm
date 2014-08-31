@@ -499,16 +499,31 @@ def bdsinstall_src(install_path_mp, install_path_zfs, jname,  choise, network, i
       if choise == 'template':
          print " "
          jail_table('1')
-
+         
          while True:
-            jtemplate = raw_input("enter jail name:> ")
+            jtemplate = raw_input("template name/jid:> ")
             if jtemplate == '!':
                print "      INFO: Interrupted by user"
                return False
-               
-            if jtemplate not in jails_list()[1]:
+
+            try:
+               int(jtemplate) == True
+               testid = 0
+            except ValueError:
+               testid = 1
+
+            if testid == 0:
+               if jtemplate in jails[2]:
+                  j = jails[2].index(jtemplate)
+                  jtemplate = jails[1][j]
+               else:
+                  print " "
+                  print "      ERROR: Jail with ID '%s' not found!" % (jtemplate)
+                  continue
+                
+            if jtemplate not in jails[1]:
                print " "
-               print "      ERROR: Please enter existing Jail name!"
+               print "      ERROR: Jail with name '%s' not found!" % (jtemplate)
                continue
 
             tjName = jails[1].index(jtemplate)
@@ -645,6 +660,7 @@ def jail_create():
 #
    """
    jails = jails_list()
+
    print " "
    print "      INFO: You can use (!) to interrupt Jail creation in each step"
    
@@ -3753,6 +3769,7 @@ def bytesto(bytes, to, bsize=1024):
 ########################################################################################
 # Start Jadm script
 ########################################################################################
+
 #try:
    # check for existing bridge and zfs 
 initcheck()
