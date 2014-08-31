@@ -432,7 +432,7 @@ def jails_list(mas = None,  remote_zfs = 0):
 # soted() return list element with all jails configs ordered by jid
    return  (active, name, jid, ip, gw, hostname, path, sorted(jailscfg,  key=lambda x: int(x[1])))
 
-def bdsinstall_src(install_path_mp, install_path_zfs, jname,  choise, network, isvnet):
+def bdsinstall_src(install_path_mp, install_path_zfs, jname,  choise, network, isvnet,  jtemplate):
       """
 ########################################################################################
 # Install jail bsd envoirment in jail path
@@ -497,52 +497,6 @@ def bdsinstall_src(install_path_mp, install_path_zfs, jname,  choise, network, i
 
 # copy existing jail zfs and local config taken from jail.conf
       if choise == 'template':
-         print " "
-         jail_table('1')
-         
-         while True:
-            jtemplate = raw_input("template name/jid:> ")
-            if jtemplate == '!':
-               print "      INFO: Interrupted by user"
-               return False
-
-            try:
-               int(jtemplate) == True
-               testid = 0
-            except ValueError:
-               testid = 1
-
-            if testid == 0:
-               if jtemplate in jails[2]:
-                  j = jails[2].index(jtemplate)
-                  jtemplate = jails[1][j]
-               else:
-                  print " "
-                  print "      ERROR: Jail with ID '%s' not found!" % (jtemplate)
-                  continue
-                
-            if jtemplate not in jails[1]:
-               print " "
-               print "      ERROR: Jail with name '%s' not found!" % (jtemplate)
-               continue
-
-            tjName = jails[1].index(jtemplate)
-            tjIP = jails[4][tjName]
-
-            if isvnet == 'YES':
-               if tjIP == 'system':
-                  print ""
-                  print "      ERROR: NoVnet jail cannot be used as template for Vnet jail!"
-                  continue
-
-            if isvnet == 'NO':
-               if tjIP != 'system':
-                  print ""
-                  print "      ERROR: Vnet jail cannot be used as template for NoVnet jail!"
-                  continue
-          
-            break
-
 # find jail tamplate local options          
          fj = find_jail(jtemplate)
          jb = fj[0]
@@ -846,6 +800,55 @@ def jail_create():
          print "      ERROR: type only (template), (bsd), (src), (skel) or (!)"
          continue
       break
+      
+# Select template if is needed
+   if install_choise == 'template':
+         print " "
+         jail_table('1')
+         
+         while True:
+            jtemplate = raw_input("template name/jid:> ")
+            if jtemplate == '!':
+               print "      INFO: Interrupted by user"
+               return False
+
+            try:
+               int(jtemplate) == True
+               testid = 0
+            except ValueError:
+               testid = 1
+
+            if testid == 0:
+               if jtemplate in jails[2]:
+                  j = jails[2].index(jtemplate)
+                  jtemplate = jails[1][j]
+               else:
+                  print "      ERROR: Jail with ID '%s' not found!" % (jtemplate)
+                  continue
+                
+            if jtemplate not in jails[1]:
+               print "      ERROR: Jail with name '%s' not found!" % (jtemplate)
+               continue
+
+            tjName = jails[1].index(jtemplate)
+            tjIP = jails[4][tjName]
+
+            if isvnet == 'YES':
+               if tjIP == 'system':
+                  print "      ERROR: NoVnet jail cannot be used as template for Vnet jail!"
+                  continue
+
+            if isvnet == 'NO':
+               if tjIP != 'system':
+                  print "      ERROR: Vnet jail cannot be used as template for NoVnet jail!"
+                  continue
+          
+            install_choise_tmp  = ' (%s)'  % jtemplate
+            break
+   else:
+       jtemplate = ''
+       install_choise_tmp  = ''
+
 # Check if BASE jail exist
    if install_choise == 'skel':
          jails_list_check = jails_list()[1]
@@ -874,7 +877,7 @@ def jail_create():
              print "...  New Jail will be created ... \n"
 
       new_jail_menu  = ['New Jail', 'Settings']
-      new_jail_settings = [['Name', jname], ['Hostname', jhostname], ['ID', jid], ['Is Vnet', isvnet],['IP address', jip], ['Gateway', jgw], ['Path', "%s%s" % (jpath, jname)], ['ZFS', "%s/%s" % (jzfs, jname)], ['ZFS Quota', jquota],  ['Install Source',  install_choise]]
+      new_jail_settings = [['Name', jname], ['Hostname', jhostname], ['ID', jid], ['Is Vnet', isvnet],['IP address', jip], ['Gateway', jgw], ['Path', "%s%s" % (jpath, jname)], ['ZFS', "%s/%s" % (jzfs, jname)], ['ZFS Quota', jquota],  ['Install Source',  install_choise+install_choise_tmp]]
       print tabulate(new_jail_settings, new_jail_menu)
 
       yn = raw_input("confirm (y/n):> ")
@@ -896,7 +899,7 @@ def jail_create():
          if use == 2:
              return False
          if use == 0:
-            temp_add_cfg = bdsinstall_src(jpath+jname, jzfs+'/'+jname,  jname,  install_choise, network[0], isvnet)
+            temp_add_cfg = bdsinstall_src(jpath+jname, jzfs+'/'+jname,  jname,  install_choise, network[0], isvnet,  jtemplate)
 # check if was installed from skleton template
             if  temp_add_cfg:
                if  temp_add_cfg[-1] == '1':
