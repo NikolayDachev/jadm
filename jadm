@@ -52,7 +52,7 @@ import base64
 ########################################################################################
 
 # jadm version
-jadm_version = "ver. 0.92_5-BETA"
+jadm_version = "ver. 0.92_6-BETA"
 
 # jail.conf location by default /etc/jail.conf
 jailconf = '/etc/jail.conf' 
@@ -76,6 +76,7 @@ LPORT = 4555
 
 # vnet
 vnet = [
+'### network options ###', 
 'vnet;',
 'vnet.interface = "$epair$b";',
 'exec.start = "ifconfig lo0 127.0.0.1/8";',
@@ -95,6 +96,7 @@ vnet = [
 
 # no vnet
 net = [
+'### network options ###', 
 'ip4.addr = "$jip";',
 'exec.start = "/bin/sh /etc/rc";',
 'exec.stop = "/bin/sh /etc/rc.shutdown";',
@@ -448,16 +450,18 @@ def bdsinstall_src(install_path_mp, install_path_zfs, jname,  choise, network, i
 # Skeleton jail model install
       if choise == 'skel':
          temp_add_cfg = skel_model('install',  install_path_mp, install_path_zfs,  jname)
-         print " "
-         print "      INFO: Jail envoirment for %s was installed as skeleton model from 'BASE' jail" % jname
+         temp_add_cfg.append('### local settings ###')
+         msg = "      INFO: Jail envoirment for '%s' was installed as skeleton model from 'BASE' jail" % jname
+         log(msg)
          return temp_add_cfg
 
 # install new jail with FreeBSD bsdinstall tool
       if choise == 'bsd':
          os.system("bsdinstall jail %s" % (install_path_mp))
          jadm_postinstall(install_path_mp)
-         print " "
-         print "      INFO: Jail envoirment was installed via 'bsdinstaller'"
+         temp_add_cfg.append('### local settings ###')
+         msg = "      INFO: Jail envoirment for '%s' was installed via 'bsdinstaller'" % jname
+         log(msg)
          return temp_add_cfg
    
 # install new jail from FreeBSD sources /usr/src (build and install)  
@@ -474,17 +478,16 @@ def bdsinstall_src(install_path_mp, install_path_zfs, jname,  choise, network, i
                os.system("cd /usr/src && make distribution DESTDIR=%s" % (install_path_mp))
 
             jadm_postinstall(install_path_mp)
-            print " "
-            print "      INFO: Jail envoirment was installed via bsd sources"
+            temp_add_cfg.append('### local settings ###')
+            msg = "      INFO: Jail envoirment for '%s' was installed via 'bsd sources'" % jname
+            log(msg)            
             return temp_add_cfg
 
 # copy existing jail zfs and local config taken from jail.conf
       if choise == 'template':
-# find jail tamplate local options          
-         fj = find_jail(jtemplate)
-         jb = fj[0]
-         je = fj[1]
-         jcl = fj[2]
+# read jaill template local options
+         temp_local_settings = jail_local_option('',  jtemplate)
+
 # mark template jails jail for BASE skeleton
          base = 0
          if 'BASE-' in jtemplate:
@@ -495,48 +498,43 @@ def bdsinstall_src(install_path_mp, install_path_zfs, jname,  choise, network, i
             os.system('mkdir %s%s' % (jpath, jname))
 # make correct install_path in jail.conf            
             install_path_cfg = '%s%s' % (jpath, jname)
-            temp_add_cfg = ['### BASE jail mount options ###', 'mount.fstab="%sBASE-RW/%s/etc/fstab";' % (jpath, jname),  'mount.devfs;']
+            temp_add_cfg = ['### BASE mount options ###', 'mount.fstab="%sBASE-RW/%s/etc/fstab";' % (jpath, jname),  'mount.devfs;']
             install_path_zfs = '%s/BASE-RW/%s' % (jzfs, jname)
             base = 1
-         print " "
-         print "      INSTALL: Create temporary snapshot '%s/%s@jadm_template'" % (jzfs, jtemplate)
+         msg =  "      INSTALL: Create temporary snapshot '%s/%s@jadm_template'" % (jzfs, jtemplate)
+         log(msg)
          os.system('zfs snapshot %s/%s@jadm_template' % (jzfs, jtemplate))
 
-         print "      INSTALL: Copy '%s/%s@jadm_template' data to '%s'" % (jzfs, jtemplate, install_path_zfs)
+         msg =  "      INSTALL: Copy '%s/%s@jadm_template' data to '%s'" % (jzfs, jtemplate, install_path_zfs)
+         log(msg)
          os.system('zfs send %s/%s@jadm_template | zfs recv -F %s' % (jzfs, jtemplate, install_path_zfs))
 
-         print "      INSTALL: Destroy temporary snapshots '%s/%s@jadm_template' and '%s@jadm_template'" % (jzfs, jtemplate, install_path_zfs)
+         msg =   "      INSTALL: Destroy temporary snapshots '%s/%s@jadm_template' and '%s@jadm_template'" % (jzfs, jtemplate, install_path_zfs)
          os.system('zfs destroy %s/%s@jadm_template' % (jzfs, jtemplate))
          os.system('zfs destroy %s@jadm_template' % (install_path_zfs))
-         
-         print "      INSTALL: Jail envoirment for '%s' was installed as skeleton model from '%s' template" % (jname,  jtemplate[7:])
-         print "      INSTALL: Copy 'additional config' from template jail '%s'" % (jtemplate[7:])
+         if base == 1:
+            msg1 =   "      INSTALL: Jail envoirment for '%s' was installed as skeleton model from '%s' template" % (jname,  jtemplate[8:])
+            msg2 =  "      INSTALL: Copy 'additional config' from template jail '%s'" % (jtemplate[8:])
+         else:
+             msg1 =   "      INSTALL: Jail envoirment for '%s' was installed as skeleton model from '%s' template" % (jname,  jtemplate)
+             msg2 =  "      INSTALL: Copy 'additional config' from template jail '%s'" % (jtemplate)
+         log(msg1)
+         log(msg2)
 # fix template skeleton model jail fstab
          if base == 1:
             os.system('echo \"%sBASE %s%s nullfs ro 0 0\" > %sBASE-RW/%s/etc/fstab' % (jpath,  jpath, jname, jpath, jname))
             os.system('echo \"%sBASE-RW/%s %s%s/SROOT nullfs rw 0 0\" >> %sBASE-RW/%s/etc/fstab' % (jpath, jname, jpath, jname, jpath,  jname))
-
-# update jail.conf
-         jc = open(jailconf, 'r')
-# if template jails jail mark as BASE skeleton         
-         if base == 1:
-             jb = jb + 2
-# exclude jail network config options
-# check template if is vnet/novnet and fix config as well
-         if network == 'vnet;':
-            jb = jb + len(vnet) + 1
-         else:
-            jb = jb + len(net) + 1
- 
-         for i in jcl[jb+8:je-1]:
+            
+# update new jail config
+         temp_add_cfg.append('### local settings ###')
+         for i in temp_local_settings:
              temp_add_cfg.append(i)
-         jc.close()
-# if template jails jail mark as BASE skeleton - last  temp_add_cfg[] = 1 
+
          if base == 1:
              temp_add_cfg.append('1')
              
-         print " "
-         print "      INFO: Jail envoirment was installed via template"         
+         msg = "      INFO: Jail envoirment for '%s' was installed via 'template: %s'" % (jname,  jtemplate)
+         log(msg)      
          return temp_add_cfg
       
 def jadm_postinstall(new_jail_path):
@@ -547,8 +545,7 @@ def jadm_postinstall(new_jail_path):
 #
    """
 # simple echo to new jail /etc/ config 
-   print " "
-   print "      INFO: JADM run postinstall"
+   log("      INFO: JADM run postinstall")
    os.system("echo '# Added by JADM' >> %s" % (new_jail_path+"/etc/rc.conf"))
    os.system("echo 'sendmail_enable=\"NONE\"' >> %s" % (new_jail_path+"/etc/rc.conf"))
    os.system("echo 'firewall_enable=\"YES\"' >> %s" % (new_jail_path+"/etc/rc.conf"))
@@ -714,12 +711,13 @@ def jail_create():
                print " "
                print "      ERROR: %s ip addreess not in %s network" % (jip, brnet)
                continue
-            else:
-               jip = str(jip) + str(brnet)[-3:]
-               if str(jip) == str(jgw):
+               
+            if str(jip) == str(jgw):
                   print " "
                   print "      ERROR: '%s' is Gateway address please enter different!" % (jip)
                   continue
+                  
+            jip = str(jip) + str(brnet)[-3:]
 
          if jip in jails[3]:
             print " "
@@ -757,7 +755,7 @@ def jail_create():
            break
 
    if jname == 'BASE':
-      network = ['']
+      network = ['',  '']
       (jhostname, jid, jgw, jip, jquota, isvnet) = ('BASE.localhost',  '0', '0.0.0.0', '0.0.0.0',  'none', 'N/A' )
 
    print ""
@@ -890,7 +888,8 @@ def jail_create():
          if use == 2:
              return False
          if use == 0:
-            temp_add_cfg = bdsinstall_src(jpath+jname, jzfs+'/'+jname,  jname,  install_choise, network[0], isvnet,  jtemplate)
+            temp_add_cfg = bdsinstall_src(jpath+jname, jzfs+'/'+jname,  jname,  install_choise, network[1], isvnet,  jtemplate)
+            
 # check if was installed from skleton template
             if  temp_add_cfg:
                if  temp_add_cfg[-1] == '1':
@@ -898,22 +897,29 @@ def jail_create():
                   del temp_add_cfg[-1]
                   skel_quota = '%s/BASE-RW/%s' % (jzfs,  jname)
                   zfs_quota(skel_quota, jquota)
+                  
          if use == 1:
-             temp_add_cfg = []
+            temp_add_cfg = ['### local settings ###']
 
+# new jail config
          dt = str(datetime.now())
-         newjail = [' \n', jname, '{', '# created on %s by ... JADM ...' % (dt), 'host.hostname = %s;' % (jhostname), 'jid = %s;' % (jid), '$jip = "%s";' % (jip), '$jgw = "%s";' % (jgw), '### jail network options ###', '}']
-
-# add network
+         newjail = ['\n', jname, 
+                          '{',
+                          '# created on %s by ... JADM ...' % (dt), 
+                          'host.hostname = %s;' % (jhostname), 
+                          'jid = %s;' % (jid), 
+                          '$jip = "%s";' % (jip), 
+                          '$jgw = "%s";' % (jgw), ]
+# add network settings
          for i in network:
-            newjail.insert(-1, i)
-
-# add local config
-         if install_choise != 'template':
-             newjail.insert(-1, '### jail local options ###')
+             newjail.append(i)
+# add local settings
          for i in temp_add_cfg:
-            newjail.insert(-1, i)
-
+             newjail.append(i)
+# close jail config
+         newjail.append('}')
+         
+# write new jail config
          jc = open(jailconf, 'a')
          jc.write('\n'.join(newjail)) 
          jc.close()
@@ -921,7 +927,6 @@ def jail_create():
          if jname == 'BASE':
              skel_model('init',  jpath+jname, jzfs+'/'+jname,  jname)
          
-         print " "
          logmsg = "      INFO: Jail \'%s\' was successful created!" % (jname)
          log(logmsg)
          return False
@@ -2633,6 +2638,7 @@ def jail_local_option(action,  jnid = '',  option = ''):
    """
 ########################################################################################
 #  manipulate jail local options list, remove or add new option
+# jail_local_op_return  - return list with jail local settings - used for create from tempalte 
 #
    """
    jails = jails_list()
@@ -2660,19 +2666,21 @@ def jail_local_option(action,  jnid = '',  option = ''):
 # create local options list
    lmen = ["Number", "### '%s' local options ###" % (jnid)]
    jail_local_op = []
+   jail_local_op_return = []
    number_local_op = 0
    add_jb = 8
 
 # fix netwrok setting
    if jcl[jb+8] == 'vnet;':
-      add_jb = add_jb + len(vnet) + 1
+      add_jb = add_jb + len(vnet)
    else:
-      add_jb = add_jb + len(net) + 1
+      add_jb = add_jb + len(net)
 
 # check if jail is BASE skeleton model
    if base == 1:
        add_jb = add_jb + 3
    for i in jcl[jb+add_jb:je-1]:
+      jail_local_op_return.append(i)
       jail_local_op.append([number_local_op, i])
       number_local_op += 1
       
@@ -2726,8 +2734,8 @@ def jail_local_option(action,  jnid = '',  option = ''):
          jc.close()
          log("      INFO: '%s' local option was added to '%s' jail!" % (option,  jnid))
          return False  
-
-   return False
+       
+   return jail_local_op_return
 
 def jail_global_option(action, option = ''):
    """
@@ -3294,8 +3302,7 @@ def skel_model(action, install_path_mp, install_path_zfs,  jname):
    if action == 'init':
 # create SKELETON MODEL
 # http://www.freebsd.org/doc/en_US.ISO8859-1/books/handbook/jails-application.html
-       print " "
-       print "      Init BASE-SKELETON zfs START..."
+       log("      INFO: Init BASE-SKELETON zfs START")
 # Create a skeleton for the read-write portion of the system
        os.system('zfs create %s' % skel_path_zfs)
        os.system('zfs set mountpoint=%s %s' % (skel_path_mp, skel_path_zfs))
@@ -3327,8 +3334,7 @@ def skel_model(action, install_path_mp, install_path_zfs,  jname):
        os.system('echo \"WRKDIRPREFIX?=  /SROOT/portbuild\" > %s/etc/make.conf' % skel_path_mp )
 # Create zfs BASE-SKELETON snapshot which will be used for installation       
        os.system('zfs snapshot %s@install' % skel_path_zfs)
-       print "      Init BASE-SKELETON zfs FINISH..."
-       print " "
+       log("      INFO: Init BASE-SKELETON zfs FINISH")
        
 # install SKELETON jail       
    if action == 'install':
@@ -3339,7 +3345,7 @@ def skel_model(action, install_path_mp, install_path_zfs,  jname):
 # create jail local config - mount skel model for jail hosme dir
       os.system('echo \"%sBASE %s%s nullfs ro 0 0\" > %sBASE-RW/%s/etc/fstab' % (jpath,  jpath, jname, jpath, jname))
       os.system('echo \"%sBASE-RW/%s %s%s/SROOT nullfs rw 0 0\" >> %sBASE-RW/%s/etc/fstab' % (jpath, jname, jpath, jname, jpath,  jname))
-      temp_add_cfg = ['### BASE jail mount options ###',  'mount.fstab="%sBASE-RW/%s/etc/fstab";' % (jpath, jname),  'mount.devfs;']
+      temp_add_cfg = ['### BASE mount options ###',  'mount.fstab="%sBASE-RW/%s/etc/fstab";' % (jpath, jname),  'mount.devfs;']
       return temp_add_cfg
 
 def jail_isrun(jnid):
