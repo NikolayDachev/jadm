@@ -5,7 +5,7 @@ Before final release all current JADM functions should work without issue
 OK - /etc/jail.conf (jadm format)
 OK - initsetup
 OK - setup
-* create
+OK - create
 * modify
 * destroy
 * remove
