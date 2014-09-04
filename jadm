@@ -76,7 +76,7 @@ LPORT = 4555
 
 # vnet
 vnet = [
-'### network options ###', 
+'### network settings ###', 
 'vnet;',
 'vnet.interface = "$epair$b";',
 'exec.start = "ifconfig lo0 127.0.0.1/8";',
@@ -96,7 +96,7 @@ vnet = [
 
 # no vnet
 net = [
-'### network options ###', 
+'### network settings ###', 
 'ip4.addr = "$jip";',
 'exec.start = "/bin/sh /etc/rc";',
 'exec.stop = "/bin/sh /etc/rc.shutdown";',
@@ -498,7 +498,7 @@ def bdsinstall_src(install_path_mp, install_path_zfs, jname,  choise, network, i
             os.system('mkdir %s%s' % (jpath, jname))
 # make correct install_path in jail.conf            
             install_path_cfg = '%s%s' % (jpath, jname)
-            temp_add_cfg = ['### BASE mount options ###', 'mount.fstab="%sBASE-RW/%s/etc/fstab";' % (jpath, jname),  'mount.devfs;']
+            temp_add_cfg = ['### BASE mount settings ###', 'mount.fstab="%sBASE-RW/%s/etc/fstab";' % (jpath, jname),  'mount.devfs;']
             install_path_zfs = '%s/BASE-RW/%s' % (jzfs, jname)
             base = 1
          msg =  "      INSTALL: Create temporary snapshot '%s/%s@jadm_template'" % (jzfs, jtemplate)
@@ -1835,13 +1835,13 @@ def jail_modify(jnid = ''):
             
             if base == 0:
                os.system("zfs rename %s/%s %s" % (jzfs, jmodify[1], zfstest))
- 	       os.system("zfs set mountpoint=%s%s %s" % (jpath, jname, zfstest))
-	       os.system("rm -rf %s%s" % (jpath, jmodify[1]))
+               os.system("zfs set mountpoint=%s%s %s" % (jpath, jname, zfstest))
+               os.system("rm -rf %s%s" % (jpath, jmodify[1]))
             if base == 1:
                os.system("zfs rename %s/BASE-RW/%s %s" % (jzfs, jmodify[1], zfstest))
                os.system("zfs set mountpoint=%sBASE-RW/%s %s" % (jpath, jname, zfstest))
                os.system("rm -rf %sBASE-RW/%s" % (jpath, jmodify[1]))
-	       os.system("rm -rf %s%s" % (jpath, jmodify[1]))
+               os.system("rm -rf %s%s" % (jpath, jmodify[1]))
       
 # check if quota should be changed
          if jquota != jmodify[7]:
@@ -1870,11 +1870,11 @@ def jail_modify(jnid = ''):
             os.system('echo \"%sBASE-RW/%s %s%s/SROOT nullfs rw 0 0\" >> %sBASE-RW/%s/etc/fstab' % (jpath, jname, jpath, jname, jpath,  jname))
 # check if is vnet
             if jcl[jb+8] == 'vnet;':
-               jcl[jb+24] = 'mount.fstab="%sBASE-RW/%s/etc/fstab";' % (jpath, jname)
-               jcl[jb+25] = 'mount.devfs;'
+               jcl[jb+8+len(vnet)] = 'mount.fstab="%sBASE-RW/%s/etc/fstab";' % (jpath, jname)
+               jcl[jb+8+len(vnet)+1] = 'mount.devfs;'
             else:
-               jcl[jb+13] = 'mount.fstab="%sBASE-RW/%s/etc/fstab";' % (jpath, jname)
-               jcl[jb+14] = 'mount.devfs;'
+               jcl[jb+8+len(net)] = 'mount.fstab="%sBASE-RW/%s/etc/fstab";' % (jpath, jname)
+               jcl[jb+8+len(net)+1] = 'mount.devfs;'
          jc.write('\n'.join(jcl))
          jc.close()
 
@@ -3345,7 +3345,7 @@ def skel_model(action, install_path_mp, install_path_zfs,  jname):
 # create jail local config - mount skel model for jail hosme dir
       os.system('echo \"%sBASE %s%s nullfs ro 0 0\" > %sBASE-RW/%s/etc/fstab' % (jpath,  jpath, jname, jpath, jname))
       os.system('echo \"%sBASE-RW/%s %s%s/SROOT nullfs rw 0 0\" >> %sBASE-RW/%s/etc/fstab' % (jpath, jname, jpath, jname, jpath,  jname))
-      temp_add_cfg = ['### BASE mount options ###',  'mount.fstab="%sBASE-RW/%s/etc/fstab";' % (jpath, jname),  'mount.devfs;']
+      temp_add_cfg = ['### BASE mount settings ###',  'mount.fstab="%sBASE-RW/%s/etc/fstab";' % (jpath, jname),  'mount.devfs;']
       return temp_add_cfg
 
 def jail_isrun(jnid):
