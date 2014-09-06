@@ -52,7 +52,7 @@ import base64
 ########################################################################################
 
 # jadm version
-jadm_version = "ver. 0.93-BETA"
+jadm_version = "ver. 0.93_1-BETA"
 
 # jail.conf location by default /etc/jail.conf
 jailconf = '/etc/jail.conf' 
@@ -391,12 +391,17 @@ def jails_list(mas = None,  remote_zfs = 0):
       else:
          act = 0
          if mas[i + 4] in caj_dying:
-	    act = 'dying'
+            act = 'dying'
       active.append(act)
 
 # check jail snapshot number
       zfs_snap = 0
-      cmd = "zfs list -t snapshot |grep %s" %  (mas[i])
+      if 'BASE-' in mas[i]:
+         jsnap = '/BASE-RW/%s@' % (mas[i])
+      else:
+         jsnap = '/%s@' % (mas[i])
+        
+      cmd = "zfs list -t snapshot |grep %s" %  (jsnap)
       try:
             for x in subprocess.check_output(cmd, shell=True).split('\n'):
                zfs_snap = zfs_snap + 1
@@ -1040,7 +1045,6 @@ def jail_start_stop(action, jnid = ''):
          subprocess.Popen("jail -v -%s %s" % (s, j), shell=True).wait()
 
    if jnid == 'BASE':
-      print " "
       print "     ERROR: 'BASE' jail cannot be used!"
       return False
 #
@@ -1140,7 +1144,6 @@ def jail_start_stop(action, jnid = ''):
                sAction('r', i)
 
                if jail_isrun(i) == 'dying':
-                  print " "
                   print "      WARNING: reboot all> Jail '%s' is mark as dying please start it later" % (i)
                   continue
 
@@ -1162,12 +1165,10 @@ def jail_start_stop(action, jnid = ''):
          j = jails[2].index(jnid)
          jnid = jails[1][j]
       else:
-         print " "
          print "      ERROR: Jail with ID '%s' not found!" % (jnid)
          return False
 
    if jnid == 'BASE':
-      print " "
       print "      ERROR: 'BASE' jail cannot be used!"
       return False
 
@@ -1176,12 +1177,10 @@ def jail_start_stop(action, jnid = ''):
       if action == "start":
 # check if jail is running
          if jail_isrun(jnid) == 1:
-            print " "
             print "      INFO: Jail '%s' is already started" % (jnid)
             return False
 
          if jail_isrun(jnid) == 'dying':
-            print " "
             print "      WARNING: Jail '%s' is mark as dying please try later" % (jnid)
             return False
 
@@ -1198,12 +1197,10 @@ def jail_start_stop(action, jnid = ''):
       elif action == "stop":
 # check if jail is stopped
          if jail_isrun(jnid) == 0:
-            print " "
             print "      INFO: Jail '%s' is already stopped" % (jnid)
             return False
                    
          if jail_isrun(jnid) == 'dying':
-            print " "
             print "      WARNING: Jail '%s' is mark as dying please try later" % (jnid)
             return False
 
@@ -1231,7 +1228,6 @@ def jail_start_stop(action, jnid = ''):
             sAction('r',  jnid)
         
             if jail_isrun(jnid) == 'dying':
-               print " "
                print "      WARNING: Jail '%s' is mark as dying please try later" % (jnid)
                return False
 
@@ -1240,7 +1236,6 @@ def jail_start_stop(action, jnid = ''):
          else:
             print " "
    else: 
-      print " "
       print "      ERROR: Jail with Name '%s' not found!" % (jnid)
 
 def jail_destroy(action, jnid = ''):
@@ -1384,11 +1379,16 @@ def jail_snapshot_list(jnid = ''):
 # jail zfs snapshot list
 #
    """
+   if 'BASE-' in jnid:
+       jnid = '/BASE-RW/%s@' % jnid
+   else:
+       jnid = '/%s@' % jnid
+   
    try:
       jsnap = subprocess.check_output("zfs list -t snapshot |grep "+jnid, shell=True)
    except:
-      print " "
-      print "      ERROR: No zfs snapshots found for '%s'" % (jnid)
+      msg = "      ERROR: No zfs snapshots found for '%s'" % (jnid)
+      log(msg)
       return False
 
    jsnap = jsnap.split('\n')
@@ -1437,12 +1437,11 @@ def jail_snapshot(action, jnid = ''):
          j = jails[2].index(jnid)
          jnid = jails[1][j]
       else:
-         print " "
-         print "      ERROR: Jail with ID '%s' not found!" % (jnid)
+         msg = "      ERROR: Jail with ID '%s' not found!" % (jnid)
+         log(msg)
          return False
 
    if jnid == 'BASE':
-      print " "
       print "      ERROR: 'BASE' jail cannot have snapshots!"
       return False
 
@@ -1459,13 +1458,10 @@ def jail_snapshot(action, jnid = ''):
       if action == "createsnap":
          os.system("zfs snapshot "+jzfssnap)
 # print and add to log file            
-         logmsg = "      INFO: New snapshot '%s' was created for Jail '%s'!" % (jzfssnap, jnid)
+         logmsg = "      INFO: New snapshot '%s' was created for '%s'!" % (jzfssnap, jnid)
          log(logmsg)  
  
          return False
-
-      print " "
-      print "      --- Snapshots list for Jail '%s' ---" % (jnid)
 
       if action == "listsnap":
          if jail_snapshot_list(jnid) == False:
@@ -1487,14 +1483,12 @@ def jail_snapshot(action, jnid = ''):
          while True:
             rmsnap = raw_input("snapshot number or (!) :> ")
             if rmsnap == "!":
-               print " "
                print "      INFO: Interrupted by user"
                return False
              
             try:
               int(rmsnap)
             except ValueError:
-              print " "
               print "      ERROR: Please use only numbers!"
               continue
          
@@ -1503,24 +1497,21 @@ def jail_snapshot(action, jnid = ''):
               sn.append(i[0])
 
             if int(rmsnap) in sn:
-               print " "
                print "      WARNING: %s snapshot will be removed!" % (jsnn[int(rmsnap)][1])
-               yn = raw_input("remove snapshot (y/n):> ")
-               if yn in "nN":
-                  print " "
-                  print "      INFO: Interrupted by user"
-                  return False
+               yn = raw_input("confirm (y):> ")
          
-               if yn in "yY":
+               if yn == "y":
                   os.system("zfs destroy "+jsnn[int(rmsnap)][1])
 # prtin and add to log file            
                   logmsg = "      INFO: '%s' jail snapshot '%s' was removed!" % (jnid, jsnn[int(rmsnap)][1])
                   log(logmsg)   
-        
                   return False 
+               else:
+                  print "      INFO: Interrupted by user"
+                  return False
+                  
             else:
-               print " "
-               print "      ERROR: Snapshot number '%s' not exist please choose different number!" % (rmsnap)
+               print "      ERROR: Snapshot number '%s' not exist!" % (rmsnap)
                continue
 
       if action == "restoresnap":
@@ -1535,14 +1526,12 @@ def jail_snapshot(action, jnid = ''):
          while True:
             snap = raw_input("snapshot number or (!) :> ")
             if snap == "!":
-               print " "
                print "      INFO: Interrupted by user"
                return False
 
             try:
               int(snap)
             except ValueError:
-              print ""
               print "      ERROR: Please use only numbers!"
               continue
       
@@ -1551,23 +1540,38 @@ def jail_snapshot(action, jnid = ''):
               sn.append(i[0])
    
             if int(snap) in sn:
-               print " "
                print "      WARNING: '%s' will be restored from '%s' snapshot!" % (jnid, jsnn[int(snap)][1])
                print "      WARNING:  all snapshots newer than '%s' will be removed too!" % (jsnn[int(snap)][1])
-               yn = raw_input("confirm (y/n):> ")
-               if yn in "nN":
-                  print " "
-                  print "      INFO: Interrupted by user"
-                  return False
+               yn = raw_input("confirm (y):> ")
 
-               if yn in "yY":
-                  jail_start_stop('stop', jnid) # stop jail befor other action
+               if yn == "y":
+# check if jail is running
+                  if jnid in jails[1]:
+                     if jail_isrun(jnid) == 1:
+                        while True:
+                           print "      WARNING: Jail '%s' should be stopped!" % (jnid)
+                           yn = raw_input("stop '%s' jail (y):> " % jnid)
+                           if yn not in "yY" or yn in ['', ' ', '	']:
+                              return False
+                           else:
+# print and add to log file            
+                              logmsg = "      INFO: modify jail> Jadm stop jail '%s'" % (jnid)
+                              log(logmsg)  
+                              os.system("jail -r %s" % jnid)
+                              break            
+                     if jail_isrun(jnid) == 'dying':
+                        print "      WARNING: Jail '%s' dying at the moment!" % (jnid)
+                        return False
+
                   os.system("zfs rollback -r %s" % (jsnn[int(snap)][1]))
                   logmsg = "      INFO: '%s' jail was restored from '%s' snapshot!" % (jnid, jsnn[int(snap)][1])
                   log(logmsg)
                   return False
+               else:
+                  print "      INFO: Interrupted by user"
+                  return False
             else:
-               print "      ERROR: Snapshot number '%s' not exist please choose different number!" % (snap)
+               print "      ERROR: Snapshot number '%s' not exist!" % (snap)
                continue
       
    else:
@@ -1610,7 +1614,6 @@ def jail_modify(jnid = ''):
    if jnid in jails[1]:
       if jail_isrun(jnid) == 1:
          while True:
-            print " "
             print "      WARNING: Jail '%s' should be stopped!" % (jnid)
             yn = raw_input("stop '%s' jail (y):> " % jnid)
             if yn not in "yY" or yn in ['', ' ', '	']:
@@ -1623,7 +1626,6 @@ def jail_modify(jnid = ''):
                break
 
       if jail_isrun(jnid) == 'dying':
-         print " "
          print "      WARNING: Jail '%s' dying at the moment!" % (jnid)
          return False
 
