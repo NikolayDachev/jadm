@@ -1367,11 +1367,11 @@ def jail_destroy(action, jnid = ''):
             jc.close()
 # check if is skeleton jails
             if 'BASE-' in jnid:
-                 os.system("rmdir %s%s" % (jpath, jnid))
+                 os.system("rm -rf %s%s" % (jpath, jnid))
                  jnid = 'BASE-RW/%s' % jnid
                  
             os.system("zfs destroy -r %s/%s" % (jzfs, jnid))
-            os.system("rmdir %s%s" % (jpath, jnid))
+            os.system("rm -rf %s%s" % (jpath, jnid))
     
             logmsg = "      INFO: Jail '%s' was destroyed!" % (jnid)
             log(logmsg)
@@ -2908,7 +2908,10 @@ def jadm_client(HOST, PORT, secret,  sendData):
       cs.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1) 
       cs.connect((HOST, PORT))
     except socket.error:
-      return "       ERROR: No connection to %s:%s" % (HOST, PORT)
+      msg = "       ERROR: No connection to %s:%s" % (HOST, PORT)
+      log(msg)
+      return '1'
+      
 
 # ENC and SEND
 # send jail config
@@ -2919,7 +2922,9 @@ def jadm_client(HOST, PORT, secret,  sendData):
           
     cs.shutdown(socket.SHUT_RDWR)
     cs.close()
-    return "       INFO: jadm client> transfer to '%s' was finished" % HOST
+    msg = "       INFO: jadm client> transfer to '%s' was finished" % HOST
+    log(msg)
+    return '0'
        
 def aes(data, secret ,encdec):
    '''
@@ -3007,16 +3012,7 @@ def migrateServer (servClient,  host,  port,  secret,  jnid):
       base = 0
       if 'BASE-' in jnid:
          base = 1
-# start jadm client        
-      if ch_ipv4(host)  == False:
-            log("       ERROR: jadm client> '%s' is not valid IP address" % host)
-            return False
-            
-      try:
-            int(port)
-      except ValueError:
-            log("       ERROR: jadm client> '%s' is not valid network port" % port)
-            return False
+# start jadm client 
 # CHECK SSH KEY LOGIN
       try:
          ssh = paramiko.SSHClient()
@@ -3025,15 +3021,78 @@ def migrateServer (servClient,  host,  port,  secret,  jnid):
          sftp = ssh.open_sftp()
       except paramiko.AuthenticationException:
          log("       ERROR: jadm client> Authentication failed when connecting to '%s'" % host)
-         print "       ERROR:  jadm client> jadm will not be able to transfer ZFS"
+         print "       ERROR: jadm client> jadm will not be able to transfer ZFS"
          return False
       except:
-         log("       ERROR:  jadm client> Could not SSH to host: '%s'" % host)
-         print "       ERROR:  jadm client> jadm will not be able to transfer ZFS"
+         log("       ERROR: jadm client> Could not SSH to host: '%s'" % host)
+         print "       ERROR: jadm client> jadm will not be able to transfer ZFS"
          return False
-      log("       INFO:  jadm client> successful ssh connection to host: '%s'" % host)
+      log("       INFO: jadm client> successful ssh connection to host: '%s'" % host)
 
+# get remote jail.conf
+# write remote jail.conf file to /tmp temp file
+      jailconf_remote = '/tmp/%s_jail.conf' % host
+      sftp.get('/etc/jail.conf',  jailconf_remote)
+# overite default jailconf var.
+      jailconf_remote = '/tmp/%s_jail.conf' % host
+      log("       INFO: remote host: '%s' jail.conf was saved as: %s" % (host, jailconf_remote))
 
+# remote jails config
+      rjails_c = load_jail_config(jailconf_remote)
+      remote_jails = jails_list(rjails_c, remote_zfs = 1)
+
+#read remote file
+      rj_conf = []
+      jconf_remote = open(jailconf_remote,  'r')
+      for i in jconf_remote:
+          rj_conf.append(i.strip('\n'))
+      jconf_remote.close()
+      
+      print rj_conf
+
+# search default remote host zfs home
+      for i in rj_conf:
+         if "$jzfs" in i:
+            r_zfs_home = i.replace('$jzfs =', '' ).replace(';', '').replace(' ', '').replace('"', '').strip('\n')
+            break
+       
+# search for BASE
+      base_j = 0
+      for i in rj_conf:
+         if i == 'BASE':
+            base_j = 1
+            break
+            
+# search for duplicated jails 
+      dup_jail = 0
+      for i in rj_conf:
+         if i == jnid:
+            msg = "       WARNING: '%s' exist on remote host: %s!" % (jnid,  host)
+            log(msg)
+            print "       WARNING: zfs transfer may fail!"
+            yn = raw_input("continue (y)> ")
+            if yn in 'Yy':
+               dup_jail = 1
+               break
+            else:
+                os.system('rm -rf %s' %  jailconf_remote)
+                return False
+            
+# create temp snapshot
+      if base == 1:
+          if base_j == 0:
+              msg = "       ERROR: remote host: '%s' - 'BASE' jail not exist!" % host
+              log(msg)
+              msg = "       ERROR: '%s' cannot be migrated!" % jnid
+              log(msg)
+              os.system('rm -rf %s' %  jailconf_remote)
+              return False
+              
+          temp_snapshot = "%s/BASE-RW/%s@%s" % (jzfs, jnid, host)
+          r_zfs_home = r_zfs_home+"BASE-RW/"
+      else:     
+          temp_snapshot = "%s/%s@%s" % (jzfs, jnid, host)
+          
 # star send data
       try:
          print ''
@@ -3041,6 +3100,7 @@ def migrateServer (servClient,  host,  port,  secret,  jnid):
          print cmsg
          print '       %s' % ('-' * len(cmsg[7:]))
          log("       INFO: jadm client> send '%s' jail config to host: '%s' on port: '%s'" % (jnid,  host,  port))
+         
 # get jail config
          sendData = []
          for mj in jails[7]:
@@ -3056,7 +3116,8 @@ def migrateServer (servClient,  host,  port,  secret,  jnid):
          sendData.append('closeconn')
 # jadm client
          cmsg = jadm_client(host,  int(port),  secret, sendData)
-         log(cmsg)
+         if cmsg == '1':
+             return False
          
       except (KeyboardInterrupt,  OSError):
          log("       WARNING: jadm client> migration was stopped!")
@@ -3064,37 +3125,33 @@ def migrateServer (servClient,  host,  port,  secret,  jnid):
 #
 # TRASNFER ZFS SNAP VIA SSH
 #
-# get remote jail.conf
-# write remote jail.conf file to /tmp temp file
-      jailconf_remote = '/tmp/%s_jail.conf' % host
-      sftp.get('/etc/jail.conf',  jailconf_remote)
-# overite default jailconf var.
-      jailconf_remote = '/tmp/%s_jail.conf' % host
-      log("       INFO: '%s' jail.conf was saved as: %s" % (host, jailconf_remote))
-
-# remote jails config
-      rjails_c = load_jail_config(jailconf_remote)
-      remote_jails = jails_list(rjails_c, remote_zfs = 1)
-
-# search default remote host zfs home
-      for i in open(jailconf_remote,  'r'):
-         if "$jzfs" in i:
-            r_zfs_home = i.replace('$jzfs =', '' ).replace(';', '').replace(' ', '').replace('"', '').strip('\n')
-            break
-            
-# create temp snapshot
-      temp_snapshot = "%s/%s@%s" % (jzfs, jnid, host)
       try:
          subprocess.check_output("zfs snapshot -r %s" % temp_snapshot, shell=True)
       except:
          subprocess.check_output("zfs destroy %s" % temp_snapshot, shell=True)
          subprocess.check_output("zfs snapshot -r %s" % temp_snapshot, shell=True)
 # check log() msg for more information
-      log("       INFO: jadm client>'%s' tempoary snapshot was created" % temp_snapshot)
+      log("       INFO: jadm client> '%s' tempoary snapshot was created" % temp_snapshot)
       log("       INFO: jadm client> copy '%s' tempoary snapshot to '%s:%s/%s' via ssh in progress ..." % (temp_snapshot, host,  r_zfs_home, jnid))
-
-      subprocess.check_output('zfs send %s |ssh %s@%s sudo zfs receive -F %s/%s' % (temp_snapshot, sshUser,  host, r_zfs_home, jnid), shell=True)
-      log("       INFO: jadm client> copy '%s' tempoary snapshot to %s cmplete!" % (temp_snapshot, host))
+      
+      if dup_jail == 1:
+         jnid = 'dup_'+jnid
+      try:
+         subprocess.check_output('zfs send %s |ssh %s@%s sudo zfs receive -F %s/%s' % (temp_snapshot, sshUser,  host, r_zfs_home, jnid), shell=True)
+         log("       INFO: jadm client> copy '%s' tempoary snapshot to %s cmplete!" % (temp_snapshot, host))
+         dup_temp = 0
+      except:
+         subprocess.check_output("zfs destroy %s" % temp_snapshot, shell=True)
+         log("       ERROR: jadm client> zfs transfer cannot be comleted!")
+         return False
+             
+# try to remove tmp snapshot on remote host
+      try:
+         subprocess.check_output("ssh %s@%s sudo zfs destroy %s/%s@%s" % (sshUser,  host,  r_zfs_home,  jnid,  host), shell=True)
+         log("       INFO: jadm client> remote snapshot '%s/%s@%s' on host '%s' was destroyed!" %  (r_zfs_home,  jnid,  host,  host))
+      except:
+         log("       WARNING: jadm client> remote snapshot '%s/%s@%s' on host '%s' was not destroyed!" %  (r_zfs_home,  jnid,  host,  host))
+         
       subprocess.check_output("zfs destroy %s" % temp_snapshot, shell=True)
       log("       INFO: jadm client> '%s' tempoary snapshot was destroyed" % temp_snapshot)
       log("       INFO: jadm client> Jail '%s' ZFS was migrated to host '%s' " %  (jnid,  host))
@@ -3104,17 +3161,21 @@ def migrateServer (servClient,  host,  port,  secret,  jnid):
 # send confirmation for complete ZFS transfer
       try:
          cmsg = jadm_client(host,  int(port),  secret, ['zfscomplete',  'closeconn'])
-         log(cmsg)
+         if cmsg == '1':
+             return False
       except (KeyboardInterrupt,  OSError):
          log("       WARNING: jadm client> migration was stopped!")
 # CLIENT END
-      log("       INFO: jadm client>  Jail '%s' migration to host '%s' was completed, please check remote JADM" %  (jnid,  host))
+      log("       INFO: jadm client> Jail '%s' migration to host '%s' was completed, please check remote JADM" %  (jnid,  host))
       return False
      
 #
 # JADM SERVER
 #
     if servClient == 'server':
+        
+        base = 0
+        
         if ch_ipv4(host)  == False:
             logmsg = "       ERROR: jadm server> '%s' is not valid IP address" % host
             log(logmsg)
@@ -3155,6 +3216,11 @@ def migrateServer (servClient,  host,  port,  secret,  jnid):
            print '       %s' % ('-' * len(logmsg[7:]))
            print ''
            notes = [0,  1,  2,  3,  4,  5 , 6 , 7]
+           
+# check is BASE skel jail
+           if 'BASE-' in recvData[2]:
+               base = 1
+               
 # check for duplicated name
            r_jname = recvData[2]
            jname = r_jname
@@ -3164,6 +3230,7 @@ def migrateServer (servClient,  host,  port,  secret,  jnid):
                    jname = 'dup_'+r_jname
                    notes[0] = "jail with name '%s' exist" % r_jname
                    break
+                   
 # check for duplicated hostname
            r_jhostname = recvData[3]
            jhostname = r_jhostname
@@ -3211,8 +3278,11 @@ def migrateServer (servClient,  host,  port,  secret,  jnid):
            jgw = r_jgw
            notes[4] = 'OK' 
            if  r_jgw not in gwip:
-              jgw = '0.0.0.0/0'
-              notes[4] = "Gateway '%s' not exist" % r_jgw
+              if r_jgw == 'system':
+                   notes[4] = 'OK'
+              else:
+                 jgw = '0.0.0.0/0'
+                 notes[4] = "Gateway '%s' not exist" % r_jgw
                
 # check zfs space 
            r_jzfs = recvData[7].split('/')
@@ -3250,6 +3320,9 @@ def migrateServer (servClient,  host,  port,  secret,  jnid):
            ['ZFS Quota', r_jzfsq, jzfsq,  notes[6]],
            ['Source Server', r_srcip, r_srcip,  notes[7]]]
            
+           if base == 1:
+               recv_jail_settings.append(['BASE jail', '-', '-', 'OK'])
+           
            print tabulate(recv_jail_settings, recv_jail_menu)
            print ''
            if 'no space' in notes[5]:
@@ -3268,6 +3341,9 @@ def migrateServer (servClient,  host,  port,  secret,  jnid):
            return False
         if ZFSrecvData[0] == 'zfscomplete':
            log("       INFO: jadm server> Zfs transfer from '%s' successful complete for jail '%s'" % (r_srcip,  jname))
+           
+        if base == 1:
+               os.system('mkdir %s%s' % jname)
  
 # append new jail to jails.conf
         log("       INFO: jadm server> Append '%s' jail to '%s'" % (jname,  jailconf))
