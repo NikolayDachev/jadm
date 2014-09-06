@@ -52,7 +52,7 @@ import base64
 ########################################################################################
 
 # jadm version
-jadm_version = "ver. 0.92_6-BETA"
+jadm_version = "ver. 0.92_7-BETA"
 
 # jail.conf location by default /etc/jail.conf
 jailconf = '/etc/jail.conf' 
@@ -444,7 +444,6 @@ def bdsinstall_src(install_path_mp, install_path_zfs, jname,  choise, network, i
       """
 # new jail config options list
       temp_add_cfg = []
-
       jails = jails_list()
 
 # Skeleton jail model install
@@ -501,6 +500,7 @@ def bdsinstall_src(install_path_mp, install_path_zfs, jname,  choise, network, i
             temp_add_cfg = ['### BASE mount settings ###', 'mount.fstab="%sBASE-RW/%s/etc/fstab";' % (jpath, jname),  'mount.devfs;']
             install_path_zfs = '%s/BASE-RW/%s' % (jzfs, jname)
             base = 1
+            
          msg =  "      INSTALL: Create temporary snapshot '%s/%s@jadm_template'" % (jzfs, jtemplate)
          log(msg)
          os.system('zfs snapshot %s/%s@jadm_template' % (jzfs, jtemplate))
@@ -512,6 +512,7 @@ def bdsinstall_src(install_path_mp, install_path_zfs, jname,  choise, network, i
          msg =   "      INSTALL: Destroy temporary snapshots '%s/%s@jadm_template' and '%s@jadm_template'" % (jzfs, jtemplate, install_path_zfs)
          os.system('zfs destroy %s/%s@jadm_template' % (jzfs, jtemplate))
          os.system('zfs destroy %s@jadm_template' % (install_path_zfs))
+         
          if base == 1:
             msg1 =   "      INSTALL: Jail envoirment for '%s' was installed as skeleton model from '%s' template" % (jname,  jtemplate[8:])
             msg2 =  "      INSTALL: Copy 'additional config' from template jail '%s'" % (jtemplate[8:])
@@ -532,8 +533,11 @@ def bdsinstall_src(install_path_mp, install_path_zfs, jname,  choise, network, i
 
          if base == 1:
              temp_add_cfg.append('1')
-             
-         msg = "      INFO: Jail envoirment for '%s' was installed via 'template: %s'" % (jname,  jtemplate)
+         
+         if base == 1:    
+            msg = "      INFO: Jail envoirment for '%s' was installed via 'template: %s'" % (jname,  jtemplate[8:])
+         else:
+            msg = "      INFO: Jail envoirment for '%s' was installed via 'template: %s'" % (jname,  jtemplate)
          log(msg)      
          return temp_add_cfg
       
@@ -815,7 +819,11 @@ def jail_create():
                if tjIP != 'system':
                   print "      ERROR: Vnet jail cannot be used as template for NoVnet jail!"
                   continue
-
+                  
+            if jtemplate == 'BASE':
+                  print "      ERROR: 'BASE' jail cannot be used as template!"
+                  continue     
+                  
             install_choise_tmp  = ' (%s)'  % jtemplate
             break
    else:
@@ -946,19 +954,35 @@ def jail_crete_zfs(jname,  jquota):
    if 'BASE-' in jname:
        if os.path.isdir('%s%s' % (jpath, jname)) == False:
            os.system("mkdir %s%s" % (jpath, jname))
-           use = 0 
-           skel_quota_zfs = '%s/BASE-RW/%s' % (jzfs,  jname)
-           skel_quota_mp = '%sBASE-RW/%s/' % (jpath,  jname)
-           os.system('zfs create %s' % skel_quota_zfs)
-	   os.system('zfs set mountpoint=%s %s' % (skel_quota_mp, skel_quota_zfs))
-           zfs_quota(skel_quota_zfs, jquota)
-           return use
+           
+       zfstest = '%s/BASE-RW/%s' % (jzfs,  jname)
+       zfstest_mp = '%sBASE-RW/%s' % (jpath,  jname)
+   else:
+       zfstest = '%s/%s' % (jzfs,  jname)
+       zfstest_mp = '%s%s' % (jpath,  jname)
+
+# check if zfs exist
+   use = zfs_exist(zfstest,  jname)
+       
+# create zfs
+   if use == 0:
+      os.system("zfs create %s" % (zfstest))
+      os.system('zfs set mountpoint=%s %s' % (zfstest_mp, zfstest))
+      zfs_quota(zfstest, jquota)
+
+   return use
    
+def zfs_exist(zfstest,  jname):
+   """
+########################################################################################
+# check if zfs exist
+#
+   """
+# list curent zfs pool
    zfs = subprocess.check_output("zfs list -H -o name", shell=True)
    zfs = zfs.split('\n')
          
-   zfstest = jzfs + "/" + jname
-   zfstest_mp = jpath + jname
+# check if exist
 
    if zfstest in zfs:
       print "      WARNING: ZFS %s alredy exist!" % (zfstest)
@@ -977,15 +1001,12 @@ def jail_crete_zfs(jname,  jquota):
 
                if zfsch == "recreate":
                   os.system("zfs destroy %s" % (zfstest))
-                  os.system("zfs create %s" % (zfstest))
-		  os.system('zfs set mountpoint=%s %s' % (zfstest_mp, zfstest))
-                  zfs_quota(zfstest, jquota)
                   use = 0
                   break
 
                if zfsch == "use":
-                  print " "
-                  print "      WARNING: Jail %s will use existing world %s" % (jname,zfstest_mp)
+                  msg = "      WARNING: Jail %s will use existing world %s" % (jname,zfstest)
+                  log(msg)
                   use = 1
                   break
 
@@ -993,12 +1014,9 @@ def jail_crete_zfs(jname,  jquota):
                   print " "
                   print "      ERROR: Please enter only (use),(recreate) or (!)"
                   continue
-                            
-   if zfstest not in zfs:
-       os.system("zfs create %s" % (zfstest))
-       os.system('zfs set mountpoint=%s %s' % (zfstest_mp, zfstest))
-       zfs_quota(zfstest, jquota)
+   else:
        use = 0
+                  
    return use
 
 def jail_start_stop(action, jnid = ''):
@@ -1842,6 +1860,7 @@ def jail_modify(jnid = ''):
                os.system("zfs set mountpoint=%sBASE-RW/%s %s" % (jpath, jname, zfstest))
                os.system("rm -rf %sBASE-RW/%s" % (jpath, jmodify[1]))
                os.system("rm -rf %s%s" % (jpath, jmodify[1]))
+               os.system("mkdir %s%s" % (jpath, jname))
       
 # check if quota should be changed
          if jquota != jmodify[7]:
@@ -1868,6 +1887,7 @@ def jail_modify(jnid = ''):
          if base == 1:
             os.system('echo \"%sBASE %s%s nullfs ro 0 0\" > %sBASE-RW/%s/etc/fstab' % (jpath,  jpath, jname, jpath, jname))
             os.system('echo \"%sBASE-RW/%s %s%s/SROOT nullfs rw 0 0\" >> %sBASE-RW/%s/etc/fstab' % (jpath, jname, jpath, jname, jpath,  jname))
+
 # check if is vnet
             if jcl[jb+8] == 'vnet;':
                jcl[jb+8+len(vnet)] = 'mount.fstab="%sBASE-RW/%s/etc/fstab";' % (jpath, jname)
