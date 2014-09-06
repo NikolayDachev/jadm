@@ -14,7 +14,7 @@ OK - snap
 OK - start
 OK - stop
 OK - reboot
-* shell
+OK - shell
 * global
 * local
 * gateways
