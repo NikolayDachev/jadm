@@ -2621,13 +2621,16 @@ def jail_shell(jnid = ''):
    if jnid == False:
       return False
       
+   if jail_isrun(jnid) != 1:
+      print "      INFO: '%s' is not running!" % (jnid)
+      return False
 
    if jnid not in jails[1]:
-      print "       Jail with name '%s' not found!" % (jnid)
+      print "      ERROR: Jail with name '%s' not found!" % (jnid)
       return False
 
    if jnid == 'BASE':
-      print "       'BASE' jail cannot be used!"
+      print "      INFO: 'BASE' jail cannot be used!"
       return False
 
    root_sheel = subprocess.check_output("head -n3 %s%s/etc/passwd" % (jpath, jnid) , shell=True).strip('jid')
@@ -2635,8 +2638,13 @@ def jail_shell(jnid = ''):
 # prtin and add to log file            
    logmsg = "      INFO: Enter in '%s' Jail!" % (jnid)
    log(logmsg)   
-
-   os.system ("jexec %s %s" % (jnid, root_sheel[-1]))
+   try:
+       os.system ("jexec %s %s" % (jnid, root_sheel[-1]))
+   except:
+       logmsg = "      ERROR: can't login in '%s'!" % (jnid)
+       log(logmsg)
+       return False
+       
    logmsg = "      INFO: Exit from '%s' Jail!" % (jnid)
    log(logmsg)   
 
