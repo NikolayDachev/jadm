@@ -10,10 +10,10 @@ OK - modify
 OK - destroy
 OK - remove
 OK - migrate
-* snap
-* start
-* stop
-* reboot
+OK - snap
+OK - start
+OK - stop
+OK - reboot
 * shell
 * global
 * local
