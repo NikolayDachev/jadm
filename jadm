@@ -3048,8 +3048,6 @@ def migrateServer (servClient,  host,  port,  secret,  jnid):
           rj_conf.append(i.strip('\n'))
       jconf_remote.close()
       
-      print rj_conf
-
 # search default remote host zfs home
       for i in rj_conf:
          if "$jzfs" in i:
@@ -3089,7 +3087,7 @@ def migrateServer (servClient,  host,  port,  secret,  jnid):
               return False
               
           temp_snapshot = "%s/BASE-RW/%s@%s" % (jzfs, jnid, host)
-          r_zfs_home = r_zfs_home+"BASE-RW/"
+          r_zfs_home = r_zfs_home+"/BASE-RW"
       else:     
           temp_snapshot = "%s/%s@%s" % (jzfs, jnid, host)
           
@@ -3110,6 +3108,17 @@ def migrateServer (servClient,  host,  port,  secret,  jnid):
 
 # get jail network options
          jb, je, jcl = find_jail(jnid)
+         
+         if dup_jail == 1:
+            if base == 1:
+                jnid_lst = list(jnid)
+                jnid_lst.insert(5, 'dup_')
+                jnid = ''.join(str(i) for i in jnid_lst)
+# fix BASE jail fstab
+
+            else:
+                jnid = 'dup_'+jnid
+
          for i in jcl[jb+7:je]:
             sendData.append(str(i))
 # add closseconn string at the end
@@ -3133,9 +3142,7 @@ def migrateServer (servClient,  host,  port,  secret,  jnid):
 # check log() msg for more information
       log("       INFO: jadm client> '%s' tempoary snapshot was created" % temp_snapshot)
       log("       INFO: jadm client> copy '%s' tempoary snapshot to '%s:%s/%s' via ssh in progress ..." % (temp_snapshot, host,  r_zfs_home, jnid))
-      
-      if dup_jail == 1:
-         jnid = 'dup_'+jnid
+
       try:
          subprocess.check_output('zfs send %s |ssh %s@%s sudo zfs receive -F %s/%s' % (temp_snapshot, sshUser,  host, r_zfs_home, jnid), shell=True)
          log("       INFO: jadm client> copy '%s' tempoary snapshot to %s cmplete!" % (temp_snapshot, host))
@@ -3227,9 +3234,16 @@ def migrateServer (servClient,  host,  port,  secret,  jnid):
            notes[0] = 'OK'           
            for i in jails[1]:
                if r_jname == i:
-                   jname = 'dup_'+r_jname
-                   notes[0] = "jail with name '%s' exist" % r_jname
-                   break
+                  if base == 1:
+                     jnid_lst = list(r_jname)
+                     jnid_lst.insert(5, 'dup_')
+                     jname = ''.join(str(i) for i in jnid_lst)
+                     notes[0] = "jail with name '%s' exist" % r_jname
+                     break
+                  else:
+                     jname = 'dup_'+r_jname
+                     notes[0] = "jail with name '%s' exist" % r_jname
+                     break
                    
 # check for duplicated hostname
            r_jhostname = recvData[3]
@@ -3343,7 +3357,7 @@ def migrateServer (servClient,  host,  port,  secret,  jnid):
            log("       INFO: jadm server> Zfs transfer from '%s' successful complete for jail '%s'" % (r_srcip,  jname))
            
         if base == 1:
-               os.system('mkdir %s%s' % jname)
+               os.system('mkdir %s%s' % (jpath,  jname))
  
 # append new jail to jails.conf
         log("       INFO: jadm server> Append '%s' jail to '%s'" % (jname,  jailconf))
