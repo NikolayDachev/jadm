@@ -52,7 +52,7 @@ import base64
 ########################################################################################
 
 # jadm version
-jadm_version = "ver. 0.92_7-BETA"
+jadm_version = "ver. 0.92_8-BETA"
 
 # jail.conf location by default /etc/jail.conf
 jailconf = '/etc/jail.conf' 
@@ -597,8 +597,9 @@ def jail_create():
    """
    jails = jails_list()
 
-   print " "
-   print "      INFO: You can use (!) to interrupt Jail creation in each step"
+   print "----------------------------------------------------"
+   print "                Create New Jail                     "
+   print "----------------------------------------------------"
    
    while True:
       jname = raw_input('Jail Name:> ')
@@ -1621,7 +1622,7 @@ def jail_modify(jnid = ''):
             del jmodify[0]
 
       print "----------------------------------------------------"
-      print "-      Modify '%s' settings" % (jmodify[1])
+      print "      Modify '%s' settings" % (jmodify[1])
       print "----------------------------------------------------"
       
       while True:
@@ -1805,63 +1806,35 @@ def jail_modify(jnid = ''):
          return False
          
       if yn in "yY":
-# list current zfs          
-         zfs = subprocess.check_output("zfs list -H -o name", shell=True)
-         zfs = zfs.split('\n')
 # jail zfs
          zfstest = jzfs + "/" + jname
 
          if jname != jmodify[1]:
 # check if jail mark as BASE skeleton model   
-            if base == 1:
-               zfstest = jzfs + "/BASE-RW/" + jname
+            if 'BASE-' in jname:
+               zfstest = '%s/BASE-RW/%s' % (jzfs,  jname)
+               zfstest_mp = '%sBASE-RW/%s' % (jpath,  jname)
+            else:
+               zfstest = '%s/%s' % (jzfs,  jname)
+               zfstest_mp = '%s%s' % (jpath,  jname)
 
-            if zfstest in zfs:
-               print " "
-               print "      WARNING: ZFS %s alredy exist!" % zfstest
-               print "             - (use): If you want you can use it for %s" % (jname)
-               print "             - (replace): We can replace it (ALL EXISTING DATA WILL BE DESTROYED!)"
-               print "             - (!): Interrupt Jail creation"
-  
-               while True:
-                  zfsch = raw_input("select:> ")
-  
-                  if zfsch == "!":
-                     print " "
-                     print "     INFO: Interrupted by user"
-                     return False
-        
-                  if zfsch == "replace":
-		     exist_zfs_mp = []
-		     for i in subprocess.check_output("zfs list -o mountpoint %s" % (zfstest), shell=True).split('\n'):
-		        exist_zfs_mp.append(i)
-  
-                     os.system("zfs destroy %s" % zfstest)
-		     os.system("rm -rf %s" % (exist_zfs_mp[1]))
-		     break
-                     
-                  if zfsch == "use":
-                     print " "
-                     print "      INFO: Jail %s will use existing world %s" % (jname, zfstest)
-                     jname = jmodify[1]
-                     break 
-
-                  if zfsch not in ['use','replace','!']:
-                     print " "
-                     print "      ERROR: Please enter only (use),(replace)' or (!)"
-                     continue
-            
-            if base == 0:
-               os.system("zfs rename %s/%s %s" % (jzfs, jmodify[1], zfstest))
-               os.system("zfs set mountpoint=%s%s %s" % (jpath, jname, zfstest))
-               os.system("rm -rf %s%s" % (jpath, jmodify[1]))
-            if base == 1:
-               os.system("zfs rename %s/BASE-RW/%s %s" % (jzfs, jmodify[1], zfstest))
-               os.system("zfs set mountpoint=%sBASE-RW/%s %s" % (jpath, jname, zfstest))
-               os.system("rm -rf %sBASE-RW/%s" % (jpath, jmodify[1]))
-               os.system("rm -rf %s%s" % (jpath, jmodify[1]))
-               os.system("mkdir %s%s" % (jpath, jname))
-      
+# check if zfs exist
+            use = zfs_exist(zfstest,  jname)
+            if use == 2:
+                return False
+                
+            if use == 0:
+               if base == 0:
+                  os.system("zfs rename %s/%s %s" % (jzfs, jmodify[1], zfstest))
+                  os.system("zfs set mountpoint=%s%s %s" % (jpath, jname, zfstest))
+                  os.system("rm -rf %s%s" % (jpath, jmodify[1]))
+               if base == 1:
+                  os.system("zfs rename %s/BASE-RW/%s %s" % (jzfs, jmodify[1], zfstest))
+                  os.system("zfs set mountpoint=%sBASE-RW/%s %s" % (jpath, jname, zfstest))
+                  os.system("rm -rf %sBASE-RW/%s" % (jpath, jmodify[1]))
+                  os.system("rm -rf %s%s" % (jpath, jmodify[1]))
+                  os.system("mkdir %s%s" % (jpath, jname))
+                  
 # check if quota should be changed
          if jquota != jmodify[7]:
 # check if jail mark  as BASE skeleton model            
