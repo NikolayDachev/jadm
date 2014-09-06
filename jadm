@@ -52,7 +52,7 @@ import base64
 ########################################################################################
 
 # jadm version
-jadm_version = "ver. 0.92_8-BETA"
+jadm_version = "ver. 0.92_9-BETA"
 
 # jail.conf location by default /etc/jail.conf
 jailconf = '/etc/jail.conf' 
@@ -1041,7 +1041,7 @@ def jail_start_stop(action, jnid = ''):
 
    if jnid == 'BASE':
       print " "
-      print "      ERROR: 'BASE' jail cannot be used!"
+      print "     ERROR: 'BASE' jail cannot be used!"
       return False
 #
 # MULTIPLE JAILS
@@ -1265,42 +1265,58 @@ def jail_destroy(action, jnid = ''):
          j = jails[2].index(jnid)
          jnid = jails[1][j]
       else:
-         print " "
          print "      ERROR: Jail with ID '%s' not found!" % (jnid)
          return False
-
+         
    if jnid in jails[1]:
-      jail_start_stop('stop', jnid) # stop jail befor other action
+      if jail_isrun(jnid) == 1:
+         while True:
+            print " "
+            print "      WARNING: Jail '%s' should be stopped!" % (jnid)
+            yn = raw_input("stop '%s' jail (y):> " % jnid)
+            if yn not in "yY" or yn in ['', ' ', '	']:
+               return False
+            else:
+# print and add to log file            
+               logmsg = "      INFO: remove/destroy > Jadm stop jail '%s'" % (jnid)
+               log(logmsg)  
+               os.system("jail -r %s" % jnid)
+               break
+            
+      if jail_isrun(jnid) == 'dying':
+         print "      WARNING: Jail '%s' dying at the moment!" % (jnid)
+         return False
 
+# find jail
       fj = find_jail(jnid)
       jb = fj[0]
       je = fj[1]
       jcl = fj[2]
 
+# REMOVE
       if action == "remove":
 # remove is not supported for  'BASE' skeleton modeil          
          if jnid == 'BASE':
-            print " "
-            print "      ERROR: 'BASE' jail cannot be removed!"
+            log("      ERROR: 'BASE' jail cannot be removed!")
             return False
+            
 # remove jail   
-         print " "
          print "      WARNING: Jail '%s' will be removed but data/zfs will be keeped!" % (jnid)
          yn = raw_input("Remove jail '%s' (y/n):> " % jnid)
+         
          if yn in "nN":
-            print " "
             print "      INFO: Jail remov was interrupted by user"
             return False
+            
          if yn in "yY":
             jc = open(jailconf, 'w')
             del jcl[jb:je]
             jc.write('\n'.join(jcl))
             jc.close()
-            print " "
             logmsg = "      INFO: Jail '%s' was removed!" % (jnid) 
-            print logmsg
             log(logmsg)
-     
+
+# DESTROY
       if action == "destroy":
 # check if 'BASE' skeleton modeil is used by other jails          
          if jnid == 'BASE':
@@ -1309,14 +1325,11 @@ def jail_destroy(action, jnid = ''):
                 if 'BASE-' in i:
                     base_jails.append(i)
             if len(base_jails) > 0:
-               print " "
-               print "     INFO: jail skeleton 'BASE' is used by:"
+               log("     INFO: jail skeleton 'BASE' is used by:")
                jail_table(['1', 'BASE-'])
-               print " "
                print "     WARNING: Please destroy all jails with 'BASE' skeleton model!"
                return False
 # destroy BASE' skeleton modeil
-            print " "
             print "      WARNING: 'BASE' skeleton model will be destroyed!"
             while True:
                     yn = raw_input("Destroy 'BASE' jail (y/n/!):> ")
@@ -1336,35 +1349,33 @@ def jail_destroy(action, jnid = ''):
                       os.system("zfs destroy -r %s/%s" % (jzfs, jnid))
                       os.system("zfs destroy -r %s/%s-RW" % (jzfs, jnid))
                       os.system("zfs destroy -r %s/%s-SKELETON" % (jzfs, jnid))
-
-                      logmsg = "      INFO: 'BASE' skeleton model was destroyed!"
-                      log(logmsg)
+                      
+                      log("      INFO: 'BASE' skeleton model was destroyed!")
                       return False
              
  # destroy jail         
-         print " "
          print "      WARNING: Jail '%s' will be destroyed all data/zfs and snapshots will be deleted!" % (jnid)
-         yn = raw_input("Destroy jail '%s' (y/n):> " % jnid)
+         yn = raw_input("Destroy '%s' (y/n):> " % jnid)
          if yn in "nN":
             print " "
             print "      INFO: Interrupted by user"
             return False
          if yn in "yY":
-           
             jc = open(jailconf, 'w')
             del jcl[jb:je]
             jc.write('\n'.join(jcl))
             jc.close()
 # check if is skeleton jails
             if 'BASE-' in jnid:
+                 os.system("rmdir %s%s" % (jpath, jnid))
                  jnid = 'BASE-RW/%s' % jnid
+                 
             os.system("zfs destroy -r %s/%s" % (jzfs, jnid))
             os.system("rmdir %s%s" % (jpath, jnid))
     
             logmsg = "      INFO: Jail '%s' was destroyed!" % (jnid)
             log(logmsg)
    else:
-      print " "
       print "      ERROR: Jail with Name '%s' not found!" % (jnid)
 
 def jail_snapshot_list(jnid = ''):
