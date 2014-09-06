@@ -9,7 +9,7 @@ OK - create
 OK - modify
 OK - destroy
 OK - remove
-* migrate
+OK - migrate
 * snap
 * start
 * stop
