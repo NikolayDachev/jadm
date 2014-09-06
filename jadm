@@ -52,7 +52,7 @@ import base64
 ########################################################################################
 
 # jadm version
-jadm_version = "ver. 0.92_9-BETA"
+jadm_version = "ver. 0.93-BETA"
 
 # jail.conf location by default /etc/jail.conf
 jailconf = '/etc/jail.conf' 
@@ -2969,6 +2969,13 @@ def migrateServer (servClient,  host,  port,  secret,  jnid):
     '''
     jails = jails_list()
     
+# save server default var's
+    def_servClient = servClient
+    def_host = host
+    def_port = port
+    def_secret = secret
+    def_jnid = jnid
+    
     if host == 'None':
         host = LHOST
     else:
@@ -3053,7 +3060,13 @@ def migrateServer (servClient,  host,  port,  secret,  jnid):
          if "$jzfs" in i:
             r_zfs_home = i.replace('$jzfs =', '' ).replace(';', '').replace(' ', '').replace('"', '').strip('\n')
             break
-       
+
+# search default remote host jails path
+      for i in rj_conf:
+         if "$jedir" in i:
+            r_jedir = i.replace('$jedir =', '' ).replace(';', '').replace(' ', '').replace('"', '').strip('\n')
+            break
+            
 # search for BASE
       base_j = 0
       for i in rj_conf:
@@ -3108,6 +3121,7 @@ def migrateServer (servClient,  host,  port,  secret,  jnid):
 
 # get jail network options
          jb, je, jcl = find_jail(jnid)
+         mi_Jail = jcl[jb+7:je]
          
          if dup_jail == 1:
             if base == 1:
@@ -3115,11 +3129,14 @@ def migrateServer (servClient,  host,  port,  secret,  jnid):
                 jnid_lst.insert(5, 'dup_')
                 jnid = ''.join(str(i) for i in jnid_lst)
 # fix BASE jail fstab
-
+                for i in  mi_Jail:
+                    if 'mount.fstab' in i:
+                       mi_Jail[mi_Jail.index(i)] = 'mount.fstab="%sBASE-RW/%s/etc/fstab";' % (r_jedir, jnid) 
+                       break
             else:
                 jnid = 'dup_'+jnid
 
-         for i in jcl[jb+7:je]:
+         for i in mi_Jail:
             sendData.append(str(i))
 # add closseconn string at the end
          sendData.append('closeconn')
@@ -3370,6 +3387,12 @@ def migrateServer (servClient,  host,  port,  secret,  jnid):
         jc = open(jailconf, 'a')
         jc.write('\n'.join(newjail)) 
         jc.close()
+# create jail local config - mount skel model for jail hosme dir
+        if base == 1:
+           os.system('echo \"%sBASE %s%s nullfs ro 0 0\" > %sBASE-RW/%s/etc/fstab' % (jpath,  jpath, jname, jpath, jname))
+           os.system('echo \"%sBASE-RW/%s %s%s/SROOT nullfs rw 0 0\" >> %sBASE-RW/%s/etc/fstab' % (jpath, jname, jpath, jname, jpath,  jname))
+           log("       INFO: jadm server> '%s' /etc/fstab was fixed!" % jname)
+           
         log("       INFO: jadm server> New jail '%s' was successful transfered from %s" % (jname,  r_srcip))
         
 # print warnings
@@ -3377,7 +3400,10 @@ def migrateServer (servClient,  host,  port,  secret,  jnid):
             log("       WARNING: jadm server> please check received jail '%s' ip address before start to use it!" % jname)
         if notes[4] != 'OK':
              log("       WARNING: jadm server> please check received jail '%s' gateway before start to use it!" % jname)
-             
+
+# revursive server - user must interupt 
+        print " "
+        migrateServer (def_servClient,  def_host,  def_port,  def_secret,  'None')
         return False
         
 def skel_model(action, install_path_mp, install_path_zfs,  jname):
