@@ -7,8 +7,8 @@ OK - initsetup
 OK - setup
 OK - create
 OK - modify
-* destroy
-* remove
+OK - destroy
+OK - remove
 * migrate
 * snap
 * start
