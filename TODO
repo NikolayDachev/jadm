@@ -6,7 +6,7 @@ OK - /etc/jail.conf (jadm format)
 OK - initsetup
 OK - setup
 OK - create
-* modify
+OK - modify
 * destroy
 * remove
 * migrate
