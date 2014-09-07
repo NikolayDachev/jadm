@@ -52,7 +52,7 @@ import base64
 ########################################################################################
 
 # jadm version
-jadm_version = "ver. 0.95"
+jadm_version = "ver. 1.0"
 
 # jail.conf location by default /etc/jail.conf
 jailconf = '/etc/jail.conf' 
@@ -3458,7 +3458,11 @@ def skel_model(action, install_path_mp, install_path_zfs,  jname):
 # remove receive snapshot        
       os.system('zfs destroy %s/BASE-RW/%s@install' % (jzfs, jname))
 # create jail local config - mount skel model for jail hosme dir
-      os.system('echo \"%sBASE %s%s nullfs ro 0 0\" > %sBASE-RW/%s/etc/fstab' % (jpath,  jpath, jname, jpath, jname))
+      if jname == 'BASE-update':
+         os.system('echo \"%sBASE %s%s nullfs rw 0 0\" > %sBASE-RW/%s/etc/fstab' % (jpath,  jpath, jname, jpath, jname))
+      else:
+         os.system('echo \"%sBASE %s%s nullfs ro 0 0\" > %sBASE-RW/%s/etc/fstab' % (jpath,  jpath, jname, jpath, jname))
+         
       os.system('echo \"%sBASE-RW/%s %s%s/SROOT nullfs rw 0 0\" >> %sBASE-RW/%s/etc/fstab' % (jpath, jname, jpath, jname, jpath,  jname))
       temp_add_cfg = ['### BASE mount settings ###',  'mount.fstab="%sBASE-RW/%s/etc/fstab";' % (jpath, jname),  'mount.devfs;']
       return temp_add_cfg
@@ -3864,7 +3868,7 @@ Please check license agreement with "about"
 List available commands with "help" or detailed help with "help cmd".
    '''  
 
-   lmenu = ['FreeBSD', 'Hostname', 'Uptime', 'Jails', 'Active',  'Version']
+   lmenu = ['FreeBSD', 'Hostname', 'Uptime', 'Jails', 'Active',  'JADM']
 
    hostname = os.uname()[1]
    opsys = os.uname()[2]
@@ -3884,7 +3888,7 @@ List available commands with "help" or detailed help with "help cmd".
    output = proc.stdout.read()
    uptime = output.split()[2][:-1]
 
-   hostInfo = [[opsys,  hostname, uptime, jailNumbers, activeJails,  jadm_version[4:]]]
+   hostInfo = [[opsys,  hostname, uptime, jailNumbers, activeJails,  jadm_version]]
    print ""
    print "Welcome to JADM (jail admin) framework"
    print ""
