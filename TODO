@@ -30,11 +30,11 @@ OK - quit
 
 -- jadm ver 0.95 --
 
-* update 'BASE' jail
+OK - update 'BASE' jail (with BASE-update)
 
 -- jadm ver 1.0 --
 
-* man page
+* man pages
 * FreeBSD port
 
 --  --
