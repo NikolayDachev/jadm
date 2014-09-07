@@ -15,8 +15,8 @@ OK - start
 OK - stop
 OK - reboot
 OK - shell
-* global
-* local
+OK - global
+OK - local
 * gateways
 * list
 * ls
