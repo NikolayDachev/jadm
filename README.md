@@ -1,8 +1,6 @@
 
 JADM is a easy FreeBSD 10 jail framework with /etc/jail.conf, vnet and zfs support 
 
-At the moment is in development process, still alot of functions should be tested and added.
-
 !! Use it in production system on your own risk !!
 
 Any 'bug' which is reported to jadm@dachev.info will help me to speed up development process
