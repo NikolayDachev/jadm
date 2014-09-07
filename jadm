@@ -52,7 +52,7 @@ import base64
 ########################################################################################
 
 # jadm version
-jadm_version = "ver. 0.93_3-BETA"
+jadm_version = "ver. 0.93_4-BETA"
 
 # jail.conf location by default /etc/jail.conf
 jailconf = '/etc/jail.conf' 
@@ -191,9 +191,9 @@ def def_vars():
 # check if jadm bridge interface exist
    try:
       netifaces.ifaddresses(bridge_int)[netifaces.AF_INET]
-   except ValueError:
+   except:
       print " "
-      print "      ERROR: Bridge interface '%s' not found!" % (bridge_int)
+      print "      ERROR: Bridge interface '%s' not found or don't have any ip addresses assigned!" % (bridge_int)
       sys.exit(0)
 
 # check if jadm zfs exist
@@ -220,37 +220,37 @@ def ch_ipv4(sp):
        return False
 
 def bridge(gwc = 0, brc = bridge_int):
-  """
+   """
 ########################################################################################
 # find and display in table format existing bridge interfacess in system
 #
-  """
+   """
 # bridge interface list
-  br_interface = []
+   br_interface = []
 # bridge ip addresses list
-  gw_ipaddr = []
+   gw_ipaddr = []
 # bridge network list
-  gw_network = []
+   gw_network = []
 # gatweway start number list
-  gw_number = 0
+   gw_number = 0
 
 # fill all lists for bridge
-  for i in netifaces.ifaddresses(bridge_int)[netifaces.AF_INET]:
-     br_interface.append([gw_number, ' ', i['addr'], i['netmask']])
-     gw_ipaddr.append(i['addr'])
-     gw_network.append(i['netmask'])
-     gw_number = gw_number + 1
-  br_interface[0][1] = bridge_int
+   for i in netifaces.ifaddresses(bridge_int)[netifaces.AF_INET]:
+      br_interface.append([gw_number, ' ', i['addr'], i['netmask']])
+      gw_ipaddr.append(i['addr'])
+      gw_network.append(i['netmask'])
+      gw_number = gw_number + 1
+   br_interface[0][1] = bridge_int
 
-  if gwc == 'check':
-      return (br_interface, gw_ipaddr, gw_network)
+   if gwc == 'check':
+       return (br_interface, gw_ipaddr, gw_network)
 
 # print jadm gateways  table
-  br_menu = ["Number", "Bridge name", "Gateway IP Address", "Gatewy Network Mask"]
-  print tabulate(br_interface, br_menu)
+   br_menu = ["Number", "Bridge name", "Gateway IP Address", "Gatewy Network Mask"]
+   print tabulate(br_interface, br_menu)
 
 # return bridge interface name, ip addresses and network mask
-  return (br_interface, gw_ipaddr, gw_network)
+   return (br_interface, gw_ipaddr, gw_network)
 
 def bridge_network_check(ip, bridge_ip, bridge_netmask):
    """
