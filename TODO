@@ -20,13 +20,24 @@ OK - local
 OK - gateways
 OK - list
 OK - jls (ex: ls)
-* introduction
-* about
-* help
-* verbose
-* log 
-* exit
-* quit
+OK - introduction
+OK - about
+OK - help
+OK - verbose
+OK - log 
+OK - exit
+OK - quit
+
+-- jadm ver 0.95 --
+
+* update 'BASE' jail
+
+-- jadm ver 1.0 --
+
+* man page
+* FreeBSD port
+
+--  --
 
 # jadm should have and bin format
 * cxfreeze --include-modules=datetime,tabulate,ipaddress,os,sys,subprocess,netifaces,cmd,paramiko,socket,Crypto.Cipher,base64 ./jadm
