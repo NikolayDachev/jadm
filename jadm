@@ -52,7 +52,7 @@ import base64
 ########################################################################################
 
 # jadm version
-jadm_version = "ver. 0.93_1-BETA"
+jadm_version = "ver. 0.93_3-BETA"
 
 # jail.conf location by default /etc/jail.conf
 jailconf = '/etc/jail.conf' 
@@ -1379,6 +1379,7 @@ def jail_snapshot_list(jnid = ''):
 # jail zfs snapshot list
 #
    """
+   jname = jnid
    if 'BASE-' in jnid:
        jnid = '/BASE-RW/%s@' % jnid
    else:
@@ -1402,7 +1403,7 @@ def jail_snapshot_list(jnid = ''):
             break
       jsnapn.append(i)
 
-   lmen = ['Number', 'Name', 'Size']
+   lmen = ['Number', "'%s' current snapshots" %    jname, 'Size']
    del jsnapn[-1]
    jsn = 0
    jsnn = []
@@ -2678,7 +2679,7 @@ def jail_local_option(action,  jnid = '',  option = ''):
    jcl = fj[2]
    
 # create local options list
-   lmen = ["Number", "### '%s' local options ###" % (jnid)]
+   lmen = ["Number", " '%s' local settings " % (jnid)]
    jail_local_op = []
    jail_local_op_return = []
    number_local_op = 0
@@ -2695,7 +2696,7 @@ def jail_local_option(action,  jnid = '',  option = ''):
        add_jb = add_jb + 3
    for i in jcl[jb+add_jb:je-1]:
       jail_local_op_return.append(i)
-      jail_local_op.append([number_local_op, i])
+      jail_local_op.append([number_local_op, i[:-1]])
       number_local_op += 1
       
 # list jail local option in /etc/jail.conf
@@ -2706,10 +2707,12 @@ def jail_local_option(action,  jnid = '',  option = ''):
 # remove jail local option from /etc/jail.conf
    if action == "rm":
       print tabulate(jail_local_op, lmen)
-      print ""
-      print "       Please select local option number which should be removed or '!' for exit"
+      
+      if number_local_op == 0:
+         return False      
+         
       while True:
-         rmlocal = raw_input("Local option number:> ")
+         rmlocal = raw_input("local setting number or (!) :> ")
          if  rmlocal == "!":
             print "      INFO: Interrupted by user"
             return False
@@ -2717,11 +2720,11 @@ def jail_local_option(action,  jnid = '',  option = ''):
          try:
            int(rmlocal)
          except ValueError:
-           print "      ERROR: Slecet valid local option number (%s - %s)!" % (0, len(jail_local_op)  - 1)
+           print "      ERROR: Slecet valid number (%s - %s)!" % (0, len(jail_local_op)  - 1)
            continue
 
          if int(rmlocal) >= len(jail_local_op):
-            print "      ERROR: Slecet valid local option number (%s - %s)!" % (0, len(jail_local_op) - 1)
+            print "       ERROR: Slecet valid number (%s - %s)!" % (0, len(jail_local_op) - 1)
             continue
 
 # write new config with changed jail local option
@@ -2729,24 +2732,25 @@ def jail_local_option(action,  jnid = '',  option = ''):
          del jcl[jb+add_jb+int(rmlocal)]
          jc.write('\n'.join(jcl))
          jc.close()
-         log("      INFO: '%s' local option was removed from '%s' jail!" % (jail_local_op[int(rmlocal)][1],  jnid))
+         
+         logvar = (jail_local_op[int(rmlocal)][1],  jnid)
+         msg = "      INFO: '%s' local setting was removed from '%s'!" % (logvar[0],  jnid)
+         log(msg)
          return False
 
 # add new jail local config option at the end
    if action == "add":
+         option.append(';')
          option = ''.join(option) # convert option list in string
-       
-         for i in [';']:
-             if i not in list(option):
-                log("      ERROR: '%s' is not valid jail local option!" % (option))
-                return False
        
 # write new config with changed jail local option
          jc = open(jailconf, 'w')
          jcl.insert(je - 1,  option)
          jc.write('\n'.join(jcl))
          jc.close()
-         log("      INFO: '%s' local option was added to '%s' jail!" % (option,  jnid))
+         
+         msg = "      INFO: '%s' local setting was added to '%s'" % (option[:-1],  jnid)
+         log(msg)
          return False  
        
    return jail_local_op_return
@@ -2780,11 +2784,11 @@ def jail_global_option(action, option = ''):
          break
 
 # create global options list
-   lmen = ["Number", "Jails Global Options"]
+   lmen = ["Number", "Jails Global Settnings"]
    jail_global = []
    number_global = 0
    for i in jcl[jb:je]:
-      jail_global.append([number_global, i])
+      jail_global.append([number_global, i[:-1]])
       number_global += 1
 
 # list jail global options in /etc/jail.conf
@@ -2795,10 +2799,12 @@ def jail_global_option(action, option = ''):
 # remove jail global option from /etc/jail.conf
    if action == "rm":
       print tabulate(jail_global, lmen)
-      print ""
-      print "       Please select global option number which should be removed or '!' for exit"
+      
+      if number_global == 0:
+         return False
+         
       while True:
-         rmglobal = raw_input("Global option number:> ")
+         rmglobal = raw_input("global setting number or (!) :> ")
          if  rmglobal == "!":
             print "      INFO: Interrupted by user"
             return False
@@ -2806,11 +2812,11 @@ def jail_global_option(action, option = ''):
          try:
            int(rmglobal)
          except ValueError:
-           print "      ERROR: Slecet valid Global option number (%s - %s)!" % (0, len(jail_global)  - 1)
+           print "      ERROR: Slecet valid number (%s - %s)!" % (0, len(jail_global)  - 1)
            continue
 
          if int(rmglobal) >= len(jail_global):
-            print "      ERROR: Slecet valid Global option number (%s - %s)!" % (0, len(jail_global) - 1)
+            print "      ERROR: Slecet valid number (%s - %s)!" % (0, len(jail_global) - 1)
             continue
             
 # write new config with changed jails global options
@@ -2818,25 +2824,24 @@ def jail_global_option(action, option = ''):
          del jcl[jb+int(rmglobal)]
          jc.write('\n'.join(jcl))
          jc.close()
-         msg = "      INFO: '%s' Global option was removed!" % (jail_global[int(rmglobal)][1])
-         log(msg)
+         
+         logvar = jail_global[int(rmglobal)][1]
+         msg = "      INFO: '%s' Global setting was removed!" % logvar
+         print msg
          return False
 
 # add new jail global option at the end
    if action == "add":
+         option.append(';')
          option = ''.join(option) # convert option list in string
        
-         for i in [';']:
-             if i not in list(option):
-                print "       '%s' is not valid jail global option!" % (option)
-                return False
-       
-# write new config with changed jail local option
+  # write new config with changed jail local option
          jc = open(jailconf, 'w')
          jcl.insert(je,  option)
          jc.write('\n'.join(jcl))
          jc.close()
-         msg = "      INFO: '%s' Global option was added!" % (option)
+         
+         msg = "      INFO: '%s' Global setting was added!" % option[:-1]
          log(msg)
          return False  
 
@@ -3150,7 +3155,8 @@ def migrateServer (servClient,  host,  port,  secret,  jnid):
             sendData.append(str(i))
 # add closseconn string at the end
          sendData.append('closeconn')
-# jadm client
+         
+# jadm client send DATA
          cmsg = jadm_client(host,  int(port),  secret, sendData)
          if cmsg == '1':
              return False
@@ -3238,12 +3244,14 @@ def migrateServer (servClient,  host,  port,  secret,  jnid):
         print'       INFO: jadm server> jadm server password: %s' % secret
         print ''
         print "       INFO: 'CTL + c' to stop jadm server"
+        
 # Received  jail config
         try:
            recvData = jadm_server(host, int(port),  secret)
            if  recvData == False:
                log("       WARNING: jadm server> jadm server was stopped!")
-               return False
+               print " "
+               migrateServer (def_servClient,  def_host,  def_port,  def_secret,  'None')
                
            logmsg = '       INFO: jadm server> jadm receive config for jail: %s' % recvData[2]
            log(logmsg)
@@ -3711,10 +3719,10 @@ class lcmd(cmd.Cmd):
         return completions
 
    def do_global(self, arg):
-       """Jails global options
-         - List Jails global options   (usage: global list )
-         - Remove Jails global options (usage: gloval remove )
-         - Add Jails global option     (usage: global add 'option=val;')
+       """Jails global setting
+         - List Jails global setting        (usage: global list )
+         - Remove Jails global setting (usage: gloval remove )
+         - Add Jails global setting        (usage: global add 'option=val')
        """
        arg = str(arg).split(' ')
        arg = [i for i in arg if i != '']
