@@ -3600,6 +3600,12 @@ class lcmd(cmd.Cmd):
         """
         print "Good bye!"
         sys.exit(0)
+        
+   def do_+'!'(self, arg):
+        """ Exit from JADM shell
+        """
+        print "Good bye!"
+        sys.exit(0)
 
    def do_create(self, arg):
         """ Create new Jail
