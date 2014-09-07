@@ -18,8 +18,8 @@ OK - shell
 OK - global
 OK - local
 OK - gateways
-* list
-* ls
+OK - list
+OK - jls (ex: ls)
 * introduction
 * about
 * help
