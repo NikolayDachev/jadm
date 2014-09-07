@@ -52,7 +52,7 @@ import base64
 ########################################################################################
 
 # jadm version
-jadm_version = "ver. 0.93_4-BETA"
+jadm_version = "ver. 0.93_5-BETA"
 
 # jail.conf location by default /etc/jail.conf
 jailconf = '/etc/jail.conf' 
@@ -2544,24 +2544,36 @@ def jail_table(mcmd):
    jails = jails_list()
    one_jail = []
    lmen = ["ACTIVE", "JID", "NAME", "HOSTNAME", "IP ADDRESS", "GATEWAY", "PATH", "USED/FREE SPACE", "ZFS QUOTA",  "SNAPHOST"]
+# check if we use short list - jls
+   if mcmd[0] == 'jls':
+       lmen = ["ACTIVE", "JID", "NAME", "HOSTNAME", "IP ADDRESS"]
    
    if len(mcmd) == 2:
       if mcmd[1] ==  "active":
           for i in jails[7]:
               if i[0] == 1:
-                  one_jail.append(i)
+                  if mcmd[0] == 'jls':
+                     one_jail.append(i[:5])
+                  else:   
+                     one_jail.append(i)
           print tabulate(one_jail, lmen)
           return False
       if mcmd[1] ==  "inactive":
           for i in jails[7]:
               if i[0] == 0:
-                  one_jail.append(i)
+                  if mcmd[0] == 'jls':
+                     one_jail.append(i[:5])
+                  else:   
+                     one_jail.append(i)
           print tabulate(one_jail, lmen)
           return False
       if mcmd[1] ==  "dying":
           for i in jails[7]:
               if i[0] == 'dying':
-                  one_jail.append(i)
+                  if mcmd[0] == 'jls':
+                     one_jail.append(i[:5])
+                  else:   
+                     one_jail.append(i)
           print tabulate(one_jail, lmen)
           return False
 
@@ -2573,40 +2585,62 @@ def jail_table(mcmd):
       if jnid == 'BASE-':
           for i in jails[7]:
               if 'BASE-'in i[2]:
-                 one_jail.append(i)
+                  if mcmd[0] == 'jls':
+                     one_jail.append(i[:5])
+                  else:   
+                     one_jail.append(i)
           print tabulate(one_jail, lmen)
           return False
 # normal jails         
       if jnid in jails[1]:
          for i in jails[7]:
             if i[2] == jnid: 
-               one_jail.append(i)
+                  if mcmd[0] == 'jls':
+                     one_jail.append(i[:5])
+                  else:   
+                     one_jail.append(i)
          print tabulate(one_jail, lmen)
       else:
          print "       Jail with name '%s' not found!" % (jnid)
          return False
-
+         
+# full jail list
    if len(mcmd) == 1:
-      print tabulate(jails[7], lmen)
+      if mcmd[0] == 'jls':
+         for i in jails[7]:
+                one_jail.append(i[:5])
+         print tabulate(one_jail, lmen)
+         return False
+      else:
+         print tabulate(jails[7], lmen)
       return False
       
    if len(mcmd) == 3:
        if mcmd[1] == "gw":
            for i in jails[7]:
                if i[5] == mcmd[2]:
-                   one_jail.append(i)
+                  if mcmd[0] == 'jls':
+                     one_jail.append(i[:5])
+                  else:   
+                     one_jail.append(i)
            print tabulate(one_jail, lmen)
            return False
        if mcmd[1] == "ip":
            for i in jails[7]:
-               if i[4] == mcmd[2]:
-                   one_jail.append(i)
+               if i[4][:-3] == mcmd[2]:
+                  if mcmd[0] == 'jls':
+                     one_jail.append(i[:5])
+                  else:   
+                     one_jail.append(i)
            print tabulate(one_jail, lmen)
            return False
        if mcmd[1] == "hostname":
            for i in jails[7]:
               if i[3] == mcmd[2]:
-                   one_jail.append(i)
+                  if mcmd[0] == 'jls':
+                     one_jail.append(i[:5])
+                  else:   
+                     one_jail.append(i)
            print tabulate(one_jail, lmen)
            return False
 
@@ -3625,7 +3659,7 @@ class lcmd(cmd.Cmd):
          - List Jail by name  (usage: list 'name/jid' )
          - List BASE skeleton Jails (usage: list BASE- )
          - List Jail by hostname  (usage: list hostname 'jail hostname' )
-         - List Jail by ipaddress (usage: list ip 'ipaddress/netmask')
+         - List Jail by ipaddress (usage: list ip 'ipaddress')
          - List Jails by gateway  (usage: list gw 'gateway ip')
          - List Actvie Jails      (usage: list active)
          - List Inactive Jails    (usage: list inactive)
@@ -3639,18 +3673,37 @@ class lcmd(cmd.Cmd):
  
         jail_table(arg)
 
-   def do_ls(self,  arg):
-       """
-        - Short ist for Jails (usage: ls)
-       """
-       jails = jails_list()
-       lmen = ["ACTIVE", "JID", "NAME", "HOSTNAME", "IP ADDRESS"]
-       short_jails = []
-       for i in jails[7]:
-           short_jails.append(i[:5])
-       print tabulate(short_jails, lmen)
-       
    def complete_list(self, text, line, begidx, endidx):
+
+        if not text:
+            completions = self.listcmd[:]
+        else:
+            completions = [ f
+                            for f in self.listcmd
+                            if f.startswith(text)
+                            ]
+        return completions
+
+   def do_jls(self,  arg):
+        """
+        - Short list for Jails
+         - List Jail by name  (usage: jls 'name/jid' )
+         - List BASE skeleton Jails (usage: jls BASE- )
+         - List Jail by hostname  (usage: jls hostname 'jail hostname' )
+         - List Jail by ipaddress (usage: jls ip 'ipaddress')
+         - List Jails by gateway  (usage: jls gw 'gateway ip')
+         - List Actvie Jails      (usage: jls active)
+         - List Inactive Jails    (usage: jls inactive)
+         - List Dying Jails    (usage: jls dying)
+        """
+
+        arg = str(arg).split(' ') 
+        arg.insert(0,'jls')
+        arg = [i for i in arg if i != '']
+ 
+        jail_table(arg)
+
+   def complete_jls(self, text, line, begidx, endidx):
 
         if not text:
             completions = self.listcmd[:]
