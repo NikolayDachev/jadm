@@ -52,7 +52,7 @@ import base64
 ########################################################################################
 
 # jadm version
-jadm_version = "ver. 0.93_5-BETA"
+jadm_version = "ver. 0.95"
 
 # jail.conf location by default /etc/jail.conf
 jailconf = '/etc/jail.conf' 
@@ -1893,59 +1893,6 @@ def jail_modify(jnid = ''):
 
          return False
 
-def help():
-   """
-########################################################################################
-# show help how to use jadm
-#
-   """
-# return help string
-
-   help = """
-    initsetup - Initial JADM setup
-    setup - Modify JADM setup
-    help or ? - List available commands with "help" or detailed help with "help cmd"
-    press 'TAB' - complete command 
-    press 'up arrow' and 'down arrow' - last used command 
-    introduction - This help information
-    log - Write custom log message in jadm log  file (usage: log 'log message')
-    about - About JADM
-    exit or quit - exit from JADM
-   
-    create - Create new Jail
-    destroy - Destroy existing Jail and delete Jail data/zfs (usage: destroy 'jailname or jid')
-    remove - Remove existing Jail but keep Jail data/zfs (usage: remove 'jailname or jid')
-    modify -  Modify existing Jail (usage: modify 'jailname or jid')
-    snap - Jail zfs snapshot managmet  
-        -  Jail ZFS snapshots list (usage: snap list 'jailname or jid')
-        -  Create new Jail ZFS snapshot (usage: snap create 'jailname or jid')
-        -  Restroe Jail ZFS from snapshot (usage: snap restore 'jailname or jid')
-        -  Remove Jail ZFS snapshot (usage: sanp remove 'jailname or jid')
-    start - Start Jail (usage: start 'jailname, jid or all')
-          - if jail name content \"tmeplate\" jadm will skip it when \"start all\" is used
-    stop - Stop Jail (usage: stop 'jailname, jid or all')
-    reboot - Reboot Jail (usage: stop 'jailname, jid or all')
-    list - List Jails on the system
-         - List Jail by name  (usage: list 'name/jid' )
-         - List Jail by hostname  (usage: list hostname 'jail hostname' )
-         - List Jail by ipaddress (usage: list ip 'ipaddress/netmask')
-         - List Jails by gateway  (usage: list gw 'gateway ip')
-         - List Actvie Jails      (usage: list active)
-         - List Inactive Jails    (usage: list inactive)
-	 - List Dying Jails	  (usage: list dying)
-    local - Jails local options
-          - List Jail local options   (usage: local list 'name/jid' )
-          - Remove Jail local options (usage: local remove 'name/jid' )
-          - Add Jail local option     (usage: local add 'name/jid' 'option=val;')
-   global - Jails global options
-         - List Jails global options   (usage: global list )
-         - Remove Jails global options (usage: gloval remove )
-         - Add Jails global option     (usage: global add 'option=val;')
-   shell - Enter in Jail (usage: shell 'jailname, jid or all')
-   gateways - List available Jail gateways on the system
-       """ 
-   return help
-
 def initsetup():
    """
 ########################################################################################
@@ -2480,10 +2427,6 @@ JADM %s
 -------------
 creator:  Nikolay Georgiev Dachev, <nikolay@dachev.info>
 support:  jadm@dachev.info (only for bugs report and jadm issues)
-
-please do not expect 24/7 support i will replay only by decision
-at the moment 'jadm' is in development,
-after first stable version i will provide mail list if is needed
 
 Jadm is FreeBSD 10 jail administration framework with jail.conf, vnet and zfs support.
 
@@ -3560,79 +3503,71 @@ class lcmd(cmd.Cmd):
    mserver = ['server',  'client']
 
    def do_log(self,  arg):
-      """ Write custom log message in jadm log  file (usage: log 'log message')
+      """ Custom log message in JADM log  file
+      - usage: log 'log message'
       """
-      arg = "%s :custom log" % (arg)
+      arg = "       %s :custom log" % (arg)
       log(arg)
-
-   def do_introduction(self,  arg):
-        """ Show all available commands in Jadm
-        """
-        print help()
-        cmd.Cmd.do_help(self, arg) 
         
    def emptyline(self):
       pass
       
    def do_initsetup(self, arg):
-       """Initial JADM setup 
+       """ Initial JADM setup 
        """
        initsetup()
 
    def do_setup(self, arg):
-       """Modify JADM setup
+       """ Modify JADM setup
        """
        setup()
 
    def do_about(self, arg):
-       """About JADM 
+       """ About JADM 
        """
        print about()
        
    def do_exit(self, arg):
-        """ Exit from JADM shell
+        """ Exit from JADM
         """
         print "Good bye!"
         sys.exit(0)
 
    def do_quit(self, arg):
-        """ Exit from JADM shell
+        """ Exit from JADM
         """
         print "Good bye!"
         sys.exit(0)
         
-   def do_+'!'(self, arg):
-        """ Exit from JADM shell
-        """
-        print "Good bye!"
-        sys.exit(0)
-
    def do_create(self, arg):
-        """ Create new Jail
+        """ Create new jail
         """
         jail_create()
 
    def do_destroy(self, arg):
-        """ Destroy existing Jail and delete Jail data/zfs (usage: destroy 'jailname or jid')
+        """ Destroy jail and delete jail data/zfs 
+        - usage: destroy 'name/jid'
         """
         jail_destroy('destroy',  arg)
         
    def do_remove(self, arg):
-        """ Remove existing Jail but keep Jail data/zfs (usage: remove 'jailname or jid')
+        """ Remove jail but keep jail data/zfs
+        - usage: remove 'name/jid'
         """
         jail_destroy('remove',  arg)
         
    def do_modify(self, arg):
-        """ Modify existing Jail (usage: modify 'jailname or jid')
+        """ Modify jail
+        - usage: modify 'name/jid'
         """
         jail_modify(arg)
         
    def do_snap(self, arg):
-        """ Jail zfs snapshot managmet  
-        -  Jail ZFS snapshots list (usage: snap list 'jailname or jid')
-        -  Create new Jail ZFS snapshot (usage: snap create 'jailname or jid')
-        -  Restroe Jail ZFS from snapshot (usage: snap restore 'jailname or jid')
-        -  Remove Jail ZFS snapshot (usage: sanp remove 'jailname or jid')
+        """ Jail snapshot managmet  
+        -  snapshots list (usage: snap list 'name/jid')
+        -  create snapshot (usage: snap create 'name/jid'')
+        -  restroe snapshot (usage: snap restore 'name/jid')
+        -  remove snapshot (usage: sanp remove 'name/jid')
         """
         arg = str(arg).split(' ')
         arg = [i for i in arg if i != '']
@@ -3661,15 +3596,18 @@ class lcmd(cmd.Cmd):
         return completions
 
    def do_list(self, arg):
-        """ List Jails on the system
-         - List Jail by name  (usage: list 'name/jid' )
-         - List BASE skeleton Jails (usage: list BASE- )
-         - List Jail by hostname  (usage: list hostname 'jail hostname' )
-         - List Jail by ipaddress (usage: list ip 'ipaddress')
-         - List Jails by gateway  (usage: list gw 'gateway ip')
-         - List Actvie Jails      (usage: list active)
-         - List Inactive Jails    (usage: list inactive)
-         - List Dying Jails    (usage: list dying)
+        """ List of jails
+        - usage: list
+         
+        (search options) 
+        - actvie (usage: list active)
+        - inactive (usage: list inactive)
+        - dying (usage: list dying)
+        - BASE (usage: list BASE- )
+        - by name (usage: list 'name/jid' )
+        - by hostname (usage: list hostname 'jail hostname' )
+        - by ipaddress (usage: list ip 'ipaddress')
+        - by gateway (usage: list gw 'gateway ip')
         """
         arg = str(arg).split(' ') 
       
@@ -3691,16 +3629,18 @@ class lcmd(cmd.Cmd):
         return completions
 
    def do_jls(self,  arg):
-        """
-        - Short list for Jails
-         - List Jail by name  (usage: jls 'name/jid' )
-         - List BASE skeleton Jails (usage: jls BASE- )
-         - List Jail by hostname  (usage: jls hostname 'jail hostname' )
-         - List Jail by ipaddress (usage: jls ip 'ipaddress')
-         - List Jails by gateway  (usage: jls gw 'gateway ip')
-         - List Actvie Jails      (usage: jls active)
-         - List Inactive Jails    (usage: jls inactive)
-         - List Dying Jails    (usage: jls dying)
+        """ Short list of jails
+        - usage: jls
+         
+        (search options) 
+        - actvie (usage: jls active)
+        - inactive (usage: jls inactive)
+        - dying (usage: jls dying)
+        - BASE (usage: jls BASE- )
+        - by name (usage: jls 'name/jid' )
+        - by hostname (usage: jls hostname 'jail hostname' )
+        - by ipaddress (usage: jls ip 'ipaddress')
+        - by gateway (usage: jls gw 'gateway ip')
         """
 
         arg = str(arg).split(' ') 
@@ -3721,26 +3661,34 @@ class lcmd(cmd.Cmd):
         return completions
         
    def do_start(self, arg):
-        """ Start Jail (usage: start 'jailname, jid or all')
-         - if jail name content \"tmeplate\" jadm will skip it when \"start all\" is used
+        """ Start jail 
+        - usage: start 'name/jid'
+        - stat all (usage: start  all)
+        -- if jail name content \"tmeplate\" JADM will skip it when \"start all\" is used
         """
         jail_start_stop('start', arg)
         
    def do_stop(self, arg):
-        """ Stop new Jail (usage: stop 'jailname, jid or all')
+        """ Stop jail
+        - usage: stop 'name/jid'
+        - stop all (usage: stop  all)
+        -- if jail name content \"tmeplate\" JADM will skip it when \"stop all\" is used
         """
         jail_start_stop('stop', arg)
         
    def do_reboot(self, arg):
-        """ Reboot Jail (usage: stop 'jailname, jid or all')
+        """ Reboot jail
+        - usage: reboot 'name/jid'
+        - reboot all (usage: reboot  all)
+        -- if jail name content \"tmeplate\" JADM will skip it when \"reboot all\" is used       
         """
         jail_start_stop('reboot', arg)
 
    def do_local(self, arg):
-       """Jails local options
-          - List Jail local options   (usage: local list 'name/jid' )
-          - Remove Jail local options (usage: local remove 'name/jid' )
-          - Add Jail local option     (usage: local add 'name/jid' 'option=val;')
+       """Jail local settings
+        - local settings (usage: local list 'name/jid' )
+        - Remove local settings (usage: local remove 'name/jid' )
+        - Add Jail local settings (usage: local add 'name/jid' 'option=val;')
        """
        arg = str(arg).split(' ')
        arg = [i for i in arg if i != '']
@@ -3779,9 +3727,9 @@ class lcmd(cmd.Cmd):
 
    def do_global(self, arg):
        """Jails global setting
-         - List Jails global setting        (usage: global list )
-         - Remove Jails global setting (usage: gloval remove )
-         - Add Jails global setting        (usage: global add 'option=val')
+        - list global setting (usage: global list )
+        - remove global setting (usage: gloval remove )
+        - add global setting (usage: global add 'setting=val')
        """
        arg = str(arg).split(' ')
        arg = [i for i in arg if i != '']
@@ -3819,7 +3767,8 @@ class lcmd(cmd.Cmd):
         return completions
 
    def do_shell(self, arg):
-        """  Enter in Jail (usage: shell 'jailname, jid or all')
+        """  Enter in Jail
+        - usage: shell 'name/jid'
         """
         jail_shell(arg)
         
@@ -3830,18 +3779,20 @@ class lcmd(cmd.Cmd):
 
    def do_migrate(self, arg):
         """ Migrate jail to remote system 
-            1. server/client comunicate with jadm socket server (AES encrypted)
-               - password for AES encription must be exactly 16 symbols if not jadm will add '0'
-            2. ssh public key for current user must be added to remote user@server:~/.ssh/authorized_keys 
-               - remote user should be able to use (sudo zfs receive), do not use root!
-               - zfs pool will be transferd via ssh
-            3. start server on remote machine before client on local
+        1. server/client comunicate with jadm socket server (AES encrypted)
+        - password for AES encription must be exactly 16 symbols if not jadm will add '0'
+        
+        2. ssh public key for current user must be added to remote user@server:~/.ssh/authorized_keys 
+        - remote user should be able to use (sudo zfs receive), do not use root!
+        - zfs pool will be transferd via ssh
+        
+        3. start server on remote machine before client on local
 
-        server usage:
-          migrate server (ip address: def *) (port: def 4555) (server password)
+        server:
+        - migrate server (ip address: def *) (port: def 4555) (server password)
 
-        client usage:
-          migrate client (remote user@host/ip) (remote port: def 4555) (server password) (jailname/id)
+        client:
+        - migrate client (remote user@host/ip) (remote port: def 4555) (server password) (jail name/id)
         """ 
         arg = str(arg).split(' ')
         arg = [i for i in arg if i != '']
@@ -3882,7 +3833,8 @@ class lcmd(cmd.Cmd):
         return completions
  
    def do_verbose(self, arg):
-        """ Show verbose output for jail satrt/stop/reboot (default: disable)
+        """ Show verbose output - jail satrt/stop/reboot
+        - default: disable
         """
         global verbose
         if verbose == 1:
@@ -3908,9 +3860,8 @@ def welcome():
    
    welmsg = '''
 FreeBSD jail framework with vnet, zfs and jail.conf support.
-This application is still in development, use it on your own risk.
-Please check license agreement with "about" command
-Check "help" and "introduction" commands how to use it
+Please check license agreement with "about" 
+List available commands with "help" or detailed help with "help cmd".
    '''  
 
    lmenu = ['FreeBSD', 'Hostname', 'Uptime', 'Jails', 'Active',  'Version']
