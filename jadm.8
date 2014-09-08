@@ -87,7 +87,7 @@ $a = "a";
 .br
 $b = "b";
 .br
-.TP
+
 .B (We should generate random mac address for each new epair'b' interface. 'ifconfig create' don't know (but FreeBSD kernel know them) mac addresses for previusly clreated epair'b' interfaces after we move them in vnet - network stack.)
 .br 
 $newmac = "dd if=/dev/urandom bs=1024 count=1 2>/dev/null|md5|sed 's/^\\(..\\)\\(..\\)\\(..\\).*$/02\\:ff\\:c0\\:\\1:\\2:\\3/'";
