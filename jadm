@@ -3919,22 +3919,22 @@ def bytesto(bytes, to, bsize=1024):
 # Start Jadm script
 ########################################################################################
 
-#try:
-   # check for existing bridge and zfs 
-initcheck()
+try:
+# check for existing bridge and zfs 
+   initcheck()
 
 # load default jadm varibles
-def_vars()
+   def_vars()
 
-   # welcome
-welcome()
+# welcome
+   welcome()
 
    # main menu shell
-lcmd().cmdloop()
+   lcmd().cmdloop()
    
-#except Exception as e:
-   # logmsg = "      CRITICAL ERROR: %s" % e
-    #log(logmsg)
+except Exception as e:
+   logmsg = "       CRITICAL ERROR: %s" % e
+   log(logmsg)
 
 ########################################################################################
 # End Jadm script 
