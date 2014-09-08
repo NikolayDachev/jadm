@@ -20,7 +20,7 @@ OK - local
 OK - gateways
 OK - list
 OK - jls (ex: ls)
-OK - introduction
+removed - introduction (not needed)
 OK - about
 OK - help
 OK - verbose
@@ -34,7 +34,7 @@ OK - update 'BASE' jail (with BASE-update)
 
 -- jadm ver 1.0 --
 
-* man pages
+* man pages - in progress
 * FreeBSD port
 
 --  --
