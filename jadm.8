@@ -55,7 +55,7 @@ When we create new jail we enter only jail name, if we use (skel) install source
 Normal jails are regular jail which can be installed via BSD - bsdinstaller, SRC - builded/pre-builded freebsd /usr/src or templates. normal jail home folder folder is a zfs.
 .TP
 .B Templates
-Every existing jail can be used as template. Vnet jail cannot be used as a template for NoVnet jail, BASE-jail cannot be used as template for normal jail and vice versa.
+Every existing jail can be used as template. Vnet jail cannot be used as a template for NoVnet jail and vice versa. Depend of what jail type we will use for template (BASE/normal) jadm will create the new jail as same type
 .br
 When template is used jadm create zfs snapshot and send/restore it to ne jail which require additional free space but we avoid zfs clone dependancy. Also jadm copy all jail local settings from template jail to new one.
 .TP
