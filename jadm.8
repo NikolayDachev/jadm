@@ -2,10 +2,10 @@
 .\" Contact jadm@dachev.info to correct errors or typos.
 .TH man 8 "09 Sep 2014" "1.0" "jadm man page"
 .SH NAME
-jadm (jail admin) \- FreeBSD jail framework with vnet, zfs and /etc/jail.conf support
+JADM (jail admin) \- FreeBSD jail framework with vnet, zfs and /etc/jail.conf support
 .SH DESCRIPTION
 Jadm provide jail framework which use only FreeBDS native /etc/jail.conf file.
-Jadm just pars /etc/jail.conf file also use FreeBSD integrated zfs functionality, bsdinstall for jail creations (also src) and freebsd jail tools.
+Jadm just pars /etc/jail.conf file also use FreeBSD zfs, bsdinstall for jail creations (also src) and freebsd jail tools.
 Jadm create custom /etc/jail.conf file with initsetup() function (make a backup if /etc/jail.conf exist)
 Jadm use zfs for jail envoirment also bridge+epair interfaces for vnet(vimage) network
 
@@ -15,19 +15,216 @@ Jadm use zfs for jail envoirment also bridge+epair interfaces for vnet(vimage) n
 .TP
 .B vnet support 
 .br 
-text
+Jadm support vnet-jails, jadm use bridge interface with epair interfaces, also jid will be used for epair interface number. birdge interface should contain ip address which will be used for vnet-jail gateway. we can use multiple (alias) ip addresses from diferent networks.
 .TP
-.B hared host system ip address
+.B shared host system ip address
 .br 
-text
+Shared hosting ip address can by any already asigned ip address to one of system interfaces
 .TP
 .B BASE (skeleton jail model)
 .br 
-text
+When we need BASE skeleton model jail, first we should create jail called 'BASE' with jadm create command. When 'BASE' jail is created jadm will create 3 difretn zfs folders. 
+.br
+.B jadm root path/BASE/
+.br
+   This folder content jail base files which will be used for all BASe-jails. Mounted under / inside BASE-jail with (RO), only jail with name 'BASE-update' is mounted with (RW).
+   We can install it via (BSD, SRC or Template)  
+.br
+.B jadm root path/BASE-SKELETON/
+.br
+   This folder is install (RW) template for new BASE-jail
+.br
+.B jadm root path/BASE-RW/
+.br
+   This folder content RW BASE-jail and is main for jail, zfs quota applay to this folder as well.
+.br
+.B jadm root path/BASE-jailname/
+.br
+   This is empty folder used for mount point of 
+   ./BASE/ mounted to ./BASE-jailname/ (RO)
+   ./BASE-RW/BASE-jailname/ ./BASE-jailname/SROOT/ (RW)
+   You can check ./BASE-RW/BASE-jailname/etc/fstab for more inforomation
+.br
+If we want to update 'BASE' and all 'BASE-' jails we can simple create jail called 'BASE-update' which will have 'BASE' (RW) mounted or we can change /etc/fstab for any BASE-jail
+
+.br
+When we create new jail we enter only jail name, if we use (skel) install source jadm will add 'BASE-' automaticlay in the name
 .TP
 .B normal jails
 .br 
-text
+Normal jails are regular jail which can be installed via BSD - bsdinstaller, SRC - builded/pre-builded freebsd /usr/src or templates. normal jail home folder folder is a zfs.
+.TP
+.B Templates
+Every existing jail can be used as template. Vnet jail cannot be used as a template for NoVnet jail, BASE-jail cannot be used as template for normal jail and vice versa.
+.br
+When template is used jadm create zfs snapshot and send/restore it to ne jail which require additional free space but we avoid zfs clone dependancy. Also jadm copy all jail local settings from template jail to new one.
+.TP
+.B /etc/jail.conf example
+
+.B Every jail created with jadm can be manage and with freebsd native jail tools.
+.br
+.B Jails Global Settings are common for all jails, local settings are only for their jail also they overite global settings
+.TP
+.br
+.B Please do not change any comment '#' in jail.conf file used by jadm
+
+.br
+.B (This is jadm settings section please do not edit it manualy if you don't know what to do)
+.br 
+######## JADM ver. 1.0 Settings ########
+.br
+# DO NOT CHANGE THIS SECTION OR COMENTS WITH "@"
+.br
+$jzfs = "zroot/jails";
+.br
+$jedir = "/jails/";
+.br
+$bridge = "bridge1";
+.br
+$epair = "epair$jid";
+.br
+$a = "a";
+.br
+$b = "b";
+.br
+.TP
+.B (We should generate random mac address for each new epair'b' interface. 'ifconfig create' don't know (but FreeBSD kernel know them) mac addresses for previusly clreated epair'b' interfaces after we move them in vnet - network stack.)
+.br 
+$newmac = "dd if=/dev/urandom bs=1024 count=1 2>/dev/null|md5|sed 's/^\\(..\\)\\(..\\)\\(..\\).*$/02\\:ff\\:c0\\:\\1:\\2:\\3/'";
+.br
+path = "$jedir$name";
+.br 
+
+.B (Those settings applay to all jails)
+.br 
+#@### Jails Global Settings #####
+.br
+allow.raw_sockets;
+.br
+#@###### Jails Settings  ########
+.br
+
+.B (This is 'BASE' jail - jadm cannot change it and sohuld not)
+.br 
+BASE
+.br
+{
+.br
+# created on 2014-09-04 18:39:38.565545 by ... JADM ...
+.br
+host.hostname = BASE.localhost;
+.br
+jid = 0;
+.br
+$jip = "0.0.0.0";
+.br
+$jgw = "0.0.0.0";
+.br
+
+
+.br
+### local settings ###
+.br
+}
+.br
+
+vnet
+.br
+{
+.br
+.B (jadm info comment - do not chane it)
+.br
+# modified on 2014-09-04 20:45:43.980510 by ... JADM ...
+.br
+host.hostname = test;
+.br
+jid = 5;
+.br
+$jip = "10.10.50.50/24";
+.br
+$jgw = "10.10.50.1";
+.br
+.B (When jail is vnet-jail jadm add this network config, please do not change it)
+.br 
+### network settings ###
+.br
+vnet;
+.br
+vnet.interface = "$epair$b";
+.br
+exec.start = "ifconfig lo0 127.0.0.1/8";
+.br
+exec.prestart = "ifconfig $epair create";
+.br
+exec.prestart += "$newmac |xargs ifconfig $epair$b ether";
+.br
+exec.prestart += "ifconfig $bridge addm $epair$a up";
+.br
+exec.prestart += "ifconfig $epair$a up";
+.br
+exec.start += "ifconfig $epair$b $jip";
+.br
+exec.start += "route add default $jgw";
+.br
+exec.start += "/bin/sh /etc/rc";
+.br
+exec.poststop = "ifconfig $bridge deletem $epair$a";
+.br
+exec.poststop += "ifconfig $epair$a destroy";
+.br
+exec.stop = "/bin/sh /etc/rc.shutdown";
+.br
+exec.clean;
+.br
+persist;
+.br
+### local settings ###
+.br
+devfs_ruleset=5;
+.br
+}
+
+.br
+BASE-novnet
+.br
+{
+.br
+# created on 2014-09-07 19:31:50.997155 by ... JADM ...
+.br
+host.hostname = test-joro.local.host;
+.br
+jid = 12;
+.br
+$jip = "1.2.3.4";
+.br
+$jgw = "system";
+.br
+### network settings ###
+.br
+ip4.addr = "$jip";
+.br
+exec.start = "/bin/sh /etc/rc";
+.br
+exec.stop = "/bin/sh /etc/rc.shutdown";
+.br
+persist;
+.br
+.B (If our jail is BASE skeleton jail, jadm add thes mount settings - do not change them manualy)
+.br 
+### BASE mount settings ###
+.br
+mount.fstab="/jails/BASE-RW/BASE-novnet/etc/fstab";
+.br
+mount.devfs;
+.br
+.B (jail local settings, they applay only for jail also replace global settings we can change them and manual as well)
+.br 
+### local settings ###
+.br
+devfs_ruleset=4;
+.br
+}
+
 
 .SH REQUIREMENTS
 .TP
@@ -76,7 +273,7 @@ if is (vnet): show brige interfaces asignet ip addresses which are used for jail
 .br
 
 .B Jail IP Address:>
-if is (vnet) jail ip address should be from them same newtwork with gateway ip, if is not (vnet) you can enter any valid ip address from the host system
+if is (vnet) jail ip address should be from them same newtwork with gateway ip, network mask will be added automaticlay, if is not (vnet) you can enter any valid ip address from the host system
  
 .br
 .B Jail ZFS Quota (M)egabytes, (G)igabytes, (none) for unlimited:>
