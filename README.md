@@ -1,5 +1,7 @@
 Jadm is python script which pars /etc/jail.conf in his own format. Jadm use  zfs  for  jail home also bridge interface and epair interfaces for jail vnet.
 
+For more details please check jadm(8) man pages and 'help' command 
+
 Quick start:
 
 If are not installed:
