@@ -4,17 +4,21 @@ For more details please check jadm(8) man pages and 'help' command
 
 Quick start:
 
+Custom FreeBSD kernel for vnet support:
+
+    options         VIMAGE
+
 If are not installed:
 
     pkg install python
     pkg install py27-pip
 
-"Install via setup.py"
+Install via setup.py:
 
     python setup.py build
     python setup.py install
 
-"Install via FreeBSD port .. should be tested"
+Install via FreeBSD port .. should be tested:
 
     cd ./FreeBSD
     make install
