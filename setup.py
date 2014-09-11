@@ -24,11 +24,12 @@ setup(
     # metadata for upload to PyPI
     author = "Nikolay Georgiev Dachev",
     author_email = "jadm@dachev.info",
-    description = ("Jadm is a easy FreeBSD jail framework with /etc/jail.conf, vnet and zfs support "),
+    description = ("FreeBSD jail framework"),
     license = "BSD 3-Clause",
     keywords = "jadm vnet zfs jail.conf",
     url = "https://github.com/NikolayDachev/jadm",   # project home page
     long_description=read('README'),
+    platforms = ("FreeBSD"),
 )
 
 # man page install
