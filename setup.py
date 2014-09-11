@@ -34,4 +34,4 @@ setup(
 
 # man page install
 if sys.argv[1] == "install":
-   os.system('cp ./jadm.8 /usr/local/man/man8/jadm.8')
+   os.system('cp ./man8/jadm.8 /usr/local/man/man8/jadm.8')
