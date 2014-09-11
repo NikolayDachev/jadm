@@ -48,12 +48,14 @@ Example FreeBSD config:
     jail_parallel_start="YES"
     jail_list="firstjaisl secondjail "
 
-/etc/natd.conf 
+/etc/natd.conf
+
     interface (external interface)
     dynamic yes
     same_ports yes
 
-/etc/ipfw.conf 
+/etc/ipfw.conf
+ 
     #!/bin/sh
 
     fwcmd="/sbin/ipfw -q"
