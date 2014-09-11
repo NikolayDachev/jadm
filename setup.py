@@ -1,10 +1,13 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 # JADM python build/install setup file
 
+import os
+import sys
 from setuptools import setup, find_packages
+
 setup(
     name = "jadm",
-    version = "0.7",
+    version = "1.0",
     packages = find_packages(),
     scripts = ['jadm'],
 
@@ -18,8 +21,12 @@ setup(
     # metadata for upload to PyPI
     author = "Nikolay Georgiev Dachev",
     author_email = "jadm@dachev.info",
-    description = "JADM is a easy FreeBSD 10 jail framework with /etc/jail.conf, vnet and zfs support ",
+    description = "Jadm is a easy FreeBSD jail framework with /etc/jail.conf, vnet and zfs support ",
     license = "BSD 3-Clause",
     keywords = "jadm vnet zfs jail.conf",
     url = "https://github.com/NikolayDachev/jadm",   # project home page
 )
+
+# man page install
+if sys.argv[1] == "install":
+   os.system('cp ./jadm.8 /usr/local/man/man8/jadm.8')
