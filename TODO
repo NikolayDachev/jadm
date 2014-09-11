@@ -40,5 +40,5 @@ OK - man pages - in progress
 --  --
 
 # jadm should have and bin format
-* cxfreeze --include-modules=datetime,tabulate,ipaddress,os,sys,subprocess,netifaces,cmd,paramiko,socket,Crypto.Cipher,base64 ./jadm
+OK - cxfreeze --include-modules=datetime,tabulate,ipaddress,os,sys,subprocess,netifaces,cmd,paramiko,socket,Crypto.Cipher,base64 ./jadm
 
