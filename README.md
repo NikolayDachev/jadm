@@ -10,33 +10,55 @@ Custom FreeBSD kernel for vnet support:
 
 If are not installed:
 
-    pkg install python
+    pkg install python27
     pkg install py27-pip
 
 Install via setup.py:
 
-    python setup.py build
-    python setup.py install
-
-Install via FreeBSD port .. should be tested:
-
-    cd ./FreeBSD
-    make install
+    ./setup.py build
+    ./setup.py install
 
 Create FreeBSD bridge interface and assign ip address:
 
     ifconfig bridge1 create
-    ifcofnig bridge1 192.168.1.1/24
-    ifcofnig bridge1 alias 10.10.10.1/24
+    ifconfig bridge1 192.168.1.1/24
+    ifconfig bridge1 alias 10.10.10.1/24
     etc ..
 
-To be aveilable on boot in rc.conf add at lease one bridge interface:
+IPFW Nat setup:
 
-    cloned_interfaces="bridge1" 
+    ipfw add divert 8668 ip from any to any via (external interface)
+
+Example FreeBSD config:
+
+/etc/rc.conf
+
+    cloned_interfaces="bridge1"
     ipv4_addrs_bridge1="192.168.1.1/24 10.10.10.1/24"
 
-Add this in /etc/rc.conf if you want to start jails on boot
+    gateway_enable="YES"
+    arpproxy_all="NO"
+
+    firewall_enable="YES"
+    firewall_script="/etc/ipfw.conf"
+    natd_enable="YES"
+    natd_flags="-f /etc/natd.conf"
 
     jail_enable="YES"
     jail_parallel_start="YES"
     jail_list="firstjaisl secondjail "
+
+/etc/natd.conf 
+    interface (external interface)
+    dynamic yes
+    same_ports yes
+
+/etc/ipfw.conf 
+    #!/bin/sh
+
+    fwcmd="/sbin/ipfw -q"
+    eif="(external interface)"
+
+    ${fwcmd} -f flush
+
+    ${fwcmd} add 65532 divert natd ip from any to any via ${eif}
