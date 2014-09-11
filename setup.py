@@ -5,6 +5,9 @@ import os
 import sys
 from setuptools import setup, find_packages
 
+def read(fname):
+    return open(os.path.join(os.path.dirname(__file__), fname)).read()
+
 setup(
     name = "jadm",
     version = "1.0",
@@ -21,10 +24,11 @@ setup(
     # metadata for upload to PyPI
     author = "Nikolay Georgiev Dachev",
     author_email = "jadm@dachev.info",
-    description = "Jadm is a easy FreeBSD jail framework with /etc/jail.conf, vnet and zfs support ",
+    description = ("Jadm is a easy FreeBSD jail framework with /etc/jail.conf, vnet and zfs support "),
     license = "BSD 3-Clause",
     keywords = "jadm vnet zfs jail.conf",
     url = "https://github.com/NikolayDachev/jadm",   # project home page
+    long_description=read('README'),
 )
 
 # man page install
