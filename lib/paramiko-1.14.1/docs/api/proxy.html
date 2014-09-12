@@ -1,0 +1,248 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>ProxyCommand support &mdash; Paramiko  documentation</title>
+    
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="Paramiko  documentation" href="../index.html" />
+    <link rel="next" title="Server implementation" href="server.html" />
+    <link rel="prev" title="Configuration" href="config.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="server.html" title="Server implementation"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="config.html" title="Configuration"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">Paramiko  documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-paramiko.proxy">
+<span id="proxycommand-support"></span><h1><tt class="docutils literal"><span class="pre">ProxyCommand</span></tt> support<a class="headerlink" href="#module-paramiko.proxy" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="paramiko.proxy.ProxyCommand">
+<em class="property">class </em><tt class="descclassname">paramiko.proxy.</tt><tt class="descname">ProxyCommand</tt><big>(</big><em>command_line</em><big>)</big><a class="headerlink" href="#paramiko.proxy.ProxyCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Wraps a subprocess running ProxyCommand-driven programs.</p>
+<p>This class implements a the socket-like interface needed by the
+<a class="reference internal" href="transport.html#paramiko.transport.Transport" title="paramiko.transport.Transport"><tt class="xref py py-obj docutils literal"><span class="pre">Transport</span></tt></a> and <a class="reference internal" href="packet.html#paramiko.packet.Packetizer" title="paramiko.packet.Packetizer"><tt class="xref py py-obj docutils literal"><span class="pre">Packetizer</span></tt></a> classes. Using this class instead of a
+regular socket makes it possible to talk with a Popen&#8217;d command that will
+proxy traffic between the client and a server hosted in another machine.</p>
+<dl class="method">
+<dt id="paramiko.proxy.ProxyCommand.__init__">
+<tt class="descname">__init__</tt><big>(</big><em>command_line</em><big>)</big><a class="headerlink" href="#paramiko.proxy.ProxyCommand.__init__" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a new CommandProxy instance. The instance created by this
+class can be passed as an argument to the <a class="reference internal" href="transport.html#paramiko.transport.Transport" title="paramiko.transport.Transport"><tt class="xref py py-obj docutils literal"><span class="pre">Transport</span></tt></a> class.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>command_line</strong> (<a class="reference external" href="http://docs.python.org/2.6/library/functions.html#str" title="(in Python v2.6)"><em>str</em></a>) &#8211; the command that should be executed and used as the proxy.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="attribute">
+<dt id="paramiko.proxy.ProxyCommand.__weakref__">
+<tt class="descname">__weakref__</tt><a class="headerlink" href="#paramiko.proxy.ProxyCommand.__weakref__" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="paramiko.proxy.ProxyCommand.recv">
+<tt class="descname">recv</tt><big>(</big><em>size</em><big>)</big><a class="headerlink" href="#paramiko.proxy.ProxyCommand.recv" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read from the standard output of the forked program.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>size</strong> (<a class="reference external" href="http://docs.python.org/2.6/library/functions.html#int" title="(in Python v2.6)"><em>int</em></a>) &#8211; how many chars should be read</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">the length of the read content, as an <a class="reference external" href="http://docs.python.org/2.6/library/functions.html#int" title="(in Python v2.6)"><tt class="xref py py-obj docutils literal"><span class="pre">int</span></tt></a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="paramiko.proxy.ProxyCommand.send">
+<tt class="descname">send</tt><big>(</big><em>content</em><big>)</big><a class="headerlink" href="#paramiko.proxy.ProxyCommand.send" title="Permalink to this definition">¶</a></dt>
+<dd><p>Write the content received from the SSH client to the standard
+input of the forked command.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>content</strong> (<a class="reference external" href="http://docs.python.org/2.6/library/functions.html#str" title="(in Python v2.6)"><em>str</em></a>) &#8211; string to be sent to the forked command</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">Paramiko</a></h1>
+
+
+
+<p class="blurb">A Python implementation of SSHv2.</p>
+
+
+
+<p>
+<iframe src="http://ghbtns.com/github-btn.html?user=paramiko&repo=paramiko&type=watch&count=true&size=large"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+    
+
+<p>
+<a href="https://travis-ci.org/paramiko/paramiko">
+    <img
+        alt="https://secure.travis-ci.org/paramiko/paramiko.png?branch=master"
+        src="https://secure.travis-ci.org/paramiko/paramiko.png?branch=master"
+    >
+</a>
+</p>
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="channel.html">Channel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="client.html">Client</a></li>
+<li class="toctree-l1"><a class="reference internal" href="message.html">Message</a></li>
+<li class="toctree-l1"><a class="reference internal" href="packet.html">Packetizer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="transport.html">Transport</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="agent.html">SSH Agents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hostkeys.html">Host keys / <tt class="docutils literal"><span class="pre">known_hosts</span></tt> files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="keys.html">Key handling</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="config.html">Configuration</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href=""><tt class="docutils literal"><span class="pre">ProxyCommand</span></tt> support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="server.html">Server implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sftp.html">SFTP</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="buffered_pipe.html">Buffered pipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="file.html">Buffered files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pipe.html">Cross-platform pipe implementations</a></li>
+<li class="toctree-l1"><a class="reference internal" href="ssh_exception.html">Exceptions</a></li>
+</ul>
+
+
+<hr />
+<ul>
+    
+    <li class="toctree-l1"><a href="http://www.paramiko.org">Main website</a></li>
+    
+</ul>
+
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3>Donate</h3>
+<p>
+Consider supporting the authors on <a href="https://www.gittip.com/">Gittip</a>:
+<iframe style="border: 0; margin: 5px 0 -5px 0; padding: 0;"
+   src="https://www.gittip.com/bitprophet/widget.html"
+   width="48pt" height="20pt"></iframe>
+</p>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014 Jeff Forcier.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.2.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.6.0</a>
+      
+      |
+      <a href="../_sources/api/proxy.txt"
+          rel="nofollow">Page source</a></li>
+    </div>
+
+    
+
+    
+    <script type="text/javascript">
+
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-18486793-2']);
+      _gaq.push(['_setDomainName', 'none']);
+      _gaq.push(['_setAllowLinker', true]);
+      _gaq.push(['_trackPageview']);
+
+      (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      })();
+
+    </script>
+    
+  </body>
+</html>
