@@ -1,0 +1,294 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Exceptions &mdash; Paramiko  documentation</title>
+    
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="Paramiko  documentation" href="../index.html" />
+    <link rel="prev" title="Cross-platform pipe implementations" href="pipe.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="pipe.html" title="Cross-platform pipe implementations"
+             accesskey="P">previous</a> |</li>
+        <li><a href="../index.html">Paramiko  documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="module-paramiko.ssh_exception">
+<span id="exceptions"></span><h1>Exceptions<a class="headerlink" href="#module-paramiko.ssh_exception" title="Permalink to this headline">¶</a></h1>
+<dl class="exception">
+<dt id="paramiko.ssh_exception.AuthenticationException">
+<em class="property">exception </em><tt class="descclassname">paramiko.ssh_exception.</tt><tt class="descname">AuthenticationException</tt><a class="headerlink" href="#paramiko.ssh_exception.AuthenticationException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Exception raised when authentication failed for some reason.  It may be
+possible to retry with different credentials.  (Other classes specify more
+specific reasons.)</p>
+<div class="versionadded">
+<p><span class="versionmodified">New in version 1.6.</span></p>
+</div>
+</dd></dl>
+
+<dl class="exception">
+<dt id="paramiko.ssh_exception.BadAuthenticationType">
+<em class="property">exception </em><tt class="descclassname">paramiko.ssh_exception.</tt><tt class="descname">BadAuthenticationType</tt><big>(</big><em>explanation</em>, <em>types</em><big>)</big><a class="headerlink" href="#paramiko.ssh_exception.BadAuthenticationType" title="Permalink to this definition">¶</a></dt>
+<dd><p>Exception raised when an authentication type (like password) is used, but
+the server isn&#8217;t allowing that type.  (It may only allow public-key, for
+example.)</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Variables:</th><td class="field-body"><strong>allowed_types</strong> (<a class="reference external" href="http://docs.python.org/2.6/library/functions.html#list" title="(in Python v2.6)"><em>list</em></a>) &#8211; list of allowed authentication types provided by the server (possible
+values are: <tt class="docutils literal"><span class="pre">&quot;none&quot;</span></tt>, <tt class="docutils literal"><span class="pre">&quot;password&quot;</span></tt>, and <tt class="docutils literal"><span class="pre">&quot;publickey&quot;</span></tt>).</td>
+</tr>
+</tbody>
+</table>
+<div class="versionadded">
+<p><span class="versionmodified">New in version 1.1.</span></p>
+</div>
+</dd></dl>
+
+<dl class="exception">
+<dt id="paramiko.ssh_exception.BadHostKeyException">
+<em class="property">exception </em><tt class="descclassname">paramiko.ssh_exception.</tt><tt class="descname">BadHostKeyException</tt><big>(</big><em>hostname</em>, <em>got_key</em>, <em>expected_key</em><big>)</big><a class="headerlink" href="#paramiko.ssh_exception.BadHostKeyException" title="Permalink to this definition">¶</a></dt>
+<dd><p>The host key given by the SSH server did not match what we were expecting.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Variables:</th><td class="field-body"><ul class="first last simple">
+<li><strong>hostname</strong> (<a class="reference external" href="http://docs.python.org/2.6/library/functions.html#str" title="(in Python v2.6)"><em>str</em></a>) &#8211; the hostname of the SSH server</li>
+<li><strong>got_key</strong> (<em>PKey</em>) &#8211; the host key presented by the server</li>
+<li><strong>expected_key</strong> (<em>PKey</em>) &#8211; the host key expected</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<div class="versionadded">
+<p><span class="versionmodified">New in version 1.6.</span></p>
+</div>
+</dd></dl>
+
+<dl class="exception">
+<dt id="paramiko.ssh_exception.ChannelException">
+<em class="property">exception </em><tt class="descclassname">paramiko.ssh_exception.</tt><tt class="descname">ChannelException</tt><big>(</big><em>code</em>, <em>text</em><big>)</big><a class="headerlink" href="#paramiko.ssh_exception.ChannelException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Exception raised when an attempt to open a new <a class="reference internal" href="channel.html#paramiko.channel.Channel" title="paramiko.channel.Channel"><tt class="xref py py-obj docutils literal"><span class="pre">Channel</span></tt></a> fails.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Variables:</th><td class="field-body"><a class="reference external" href="http://docs.python.org/2.6/library/code.html#module-code" title="(in Python v2.6)"><strong>code</strong></a> (<a class="reference external" href="http://docs.python.org/2.6/library/functions.html#int" title="(in Python v2.6)"><em>int</em></a>) &#8211; the error code returned by the server</td>
+</tr>
+</tbody>
+</table>
+<div class="versionadded">
+<p><span class="versionmodified">New in version 1.6.</span></p>
+</div>
+</dd></dl>
+
+<dl class="exception">
+<dt id="paramiko.ssh_exception.PartialAuthentication">
+<em class="property">exception </em><tt class="descclassname">paramiko.ssh_exception.</tt><tt class="descname">PartialAuthentication</tt><big>(</big><em>types</em><big>)</big><a class="headerlink" href="#paramiko.ssh_exception.PartialAuthentication" title="Permalink to this definition">¶</a></dt>
+<dd><p>An internal exception thrown in the case of partial authentication.</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="paramiko.ssh_exception.PasswordRequiredException">
+<em class="property">exception </em><tt class="descclassname">paramiko.ssh_exception.</tt><tt class="descname">PasswordRequiredException</tt><a class="headerlink" href="#paramiko.ssh_exception.PasswordRequiredException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Exception raised when a password is needed to unlock a private key file.</p>
+</dd></dl>
+
+<dl class="exception">
+<dt id="paramiko.ssh_exception.ProxyCommandFailure">
+<em class="property">exception </em><tt class="descclassname">paramiko.ssh_exception.</tt><tt class="descname">ProxyCommandFailure</tt><big>(</big><em>command</em>, <em>error</em><big>)</big><a class="headerlink" href="#paramiko.ssh_exception.ProxyCommandFailure" title="Permalink to this definition">¶</a></dt>
+<dd><p>The &#8220;ProxyCommand&#8221; found in the .ssh/config file returned an error.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Variables:</th><td class="field-body"><ul class="first last simple">
+<li><strong>command</strong> (<a class="reference external" href="http://docs.python.org/2.6/library/functions.html#str" title="(in Python v2.6)"><em>str</em></a>) &#8211; The command line that is generating this exception.</li>
+<li><strong>error</strong> (<a class="reference external" href="http://docs.python.org/2.6/library/functions.html#str" title="(in Python v2.6)"><em>str</em></a>) &#8211; The error captured from the proxy command output.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="exception">
+<dt id="paramiko.ssh_exception.SSHException">
+<em class="property">exception </em><tt class="descclassname">paramiko.ssh_exception.</tt><tt class="descname">SSHException</tt><a class="headerlink" href="#paramiko.ssh_exception.SSHException" title="Permalink to this definition">¶</a></dt>
+<dd><p>Exception raised by failures in SSH2 protocol negotiation or logic errors.</p>
+<dl class="attribute">
+<dt id="paramiko.ssh_exception.SSHException.__weakref__">
+<tt class="descname">__weakref__</tt><a class="headerlink" href="#paramiko.ssh_exception.SSHException.__weakref__" title="Permalink to this definition">¶</a></dt>
+<dd><p>list of weak references to the object (if defined)</p>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">Paramiko</a></h1>
+
+
+
+<p class="blurb">A Python implementation of SSHv2.</p>
+
+
+
+<p>
+<iframe src="http://ghbtns.com/github-btn.html?user=paramiko&repo=paramiko&type=watch&count=true&size=large"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+    
+
+<p>
+<a href="https://travis-ci.org/paramiko/paramiko">
+    <img
+        alt="https://secure.travis-ci.org/paramiko/paramiko.png?branch=master"
+        src="https://secure.travis-ci.org/paramiko/paramiko.png?branch=master"
+    >
+</a>
+</p>
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="channel.html">Channel</a></li>
+<li class="toctree-l1"><a class="reference internal" href="client.html">Client</a></li>
+<li class="toctree-l1"><a class="reference internal" href="message.html">Message</a></li>
+<li class="toctree-l1"><a class="reference internal" href="packet.html">Packetizer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="transport.html">Transport</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="agent.html">SSH Agents</a></li>
+<li class="toctree-l1"><a class="reference internal" href="hostkeys.html">Host keys / <tt class="docutils literal"><span class="pre">known_hosts</span></tt> files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="keys.html">Key handling</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="config.html">Configuration</a></li>
+<li class="toctree-l1"><a class="reference internal" href="proxy.html"><tt class="docutils literal"><span class="pre">ProxyCommand</span></tt> support</a></li>
+<li class="toctree-l1"><a class="reference internal" href="server.html">Server implementation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="sftp.html">SFTP</a></li>
+</ul>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="buffered_pipe.html">Buffered pipes</a></li>
+<li class="toctree-l1"><a class="reference internal" href="file.html">Buffered files</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pipe.html">Cross-platform pipe implementations</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="">Exceptions</a></li>
+</ul>
+
+
+<hr />
+<ul>
+    
+    <li class="toctree-l1"><a href="http://www.paramiko.org">Main website</a></li>
+    
+</ul>
+
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+<h3>Donate</h3>
+<p>
+Consider supporting the authors on <a href="https://www.gittip.com/">Gittip</a>:
+<iframe style="border: 0; margin: 5px 0 -5px 0; padding: 0;"
+   src="https://www.gittip.com/bitprophet/widget.html"
+   width="48pt" height="20pt"></iframe>
+</p>
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2014 Jeff Forcier.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.2.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.6.0</a>
+      
+      |
+      <a href="../_sources/api/ssh_exception.txt"
+          rel="nofollow">Page source</a></li>
+    </div>
+
+    
+
+    
+    <script type="text/javascript">
+
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-18486793-2']);
+      _gaq.push(['_setDomainName', 'none']);
+      _gaq.push(['_setAllowLinker', true]);
+      _gaq.push(['_trackPageview']);
+
+      (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      })();
+
+    </script>
+    
+  </body>
+</html>
