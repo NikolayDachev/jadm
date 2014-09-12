@@ -11,8 +11,6 @@ def read(fname):
 setup(
     name = "jadm",
     version = "1.0",
-#    package_dir = {'': 'lib'},
-#    packages = ['ipaddress', 'netifaces', 'paramiko', 'tabulate'],
     scripts = ['jadm'],
 
     # install or upgraded on the target machine
