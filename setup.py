@@ -14,6 +14,7 @@ setup(
     scripts = ['jadm'],
 
     # install or upgraded on the target machine
+
     # - tabulate - used to print useful infomration in table format
     # - netifaces - used for check FreeBSD bridge interfaces
     # - ipaddress - used to check if jail ip is from gateway network
