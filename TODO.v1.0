@@ -1,0 +1,44 @@
+JADM Quality Assurances steps to release ver 1.0 
+
+Before final release all current JADM functions should work without issue
+
+OK - /etc/jail.conf (jadm format)
+OK - initsetup
+OK - setup
+OK - create
+OK - modify
+OK - destroy
+OK - remove
+OK - migrate
+OK - snap
+OK - start
+OK - stop
+OK - reboot
+OK - shell
+OK - global
+OK - local
+OK - gateways
+OK - list
+OK - jls (ex: ls)
+removed - introduction (not needed)
+OK - about
+OK - help
+OK - verbose
+OK - log 
+OK - exit
+OK - quit
+
+-- jadm ver 0.95 --
+
+OK - update 'BASE' jail (with BASE-update)
+
+-- jadm ver 1.0 --
+
+OK - man pages - in progress
+OK FreeBSD port
+
+--  --
+
+# jadm should have and bin format
+OK - cxfreeze --include-modules=datetime,tabulate,ipaddress,os,sys,subprocess,netifaces,cmd,paramiko,socket,Crypto.Cipher,base64 ./jadm
+
