@@ -3914,7 +3914,11 @@ def bytesto(bytes, to, bsize=1024):
       r = r * bsize
 
    return(r)
-   
+
+def jadm_cli():
+   print "cli mode work"
+   sys.exit(0)
+
 ########################################################################################
 # Start Jadm script
 ########################################################################################
@@ -3925,6 +3929,10 @@ try:
 
 # load default jadm varibles
    def_vars()
+
+# use cli interface
+   if len( sys.argv ) > 1:
+      jadm_cli()
 
 # welcome
    welcome()
