@@ -52,7 +52,7 @@ import base64
 ########################################################################################
 
 # jadm version
-jadm_version = "ver. 1.0"
+jadm_version = "devel ver. 1.0.1"
 
 # jail.conf location by default /etc/jail.conf
 jailconf = '/etc/jail.conf' 
@@ -3915,10 +3915,6 @@ def bytesto(bytes, to, bsize=1024):
 
    return(r)
 
-def jadm_cli():
-   print "cli mode work"
-   sys.exit(0)
-
 ########################################################################################
 # Start Jadm script
 ########################################################################################
@@ -3931,15 +3927,18 @@ try:
    def_vars()
 
 # use cli interface
-   if len( sys.argv ) > 1:
-      jadm_cli()
+   if len(sys.argv) > 1:
+      lcmd().onecmd(' '.join(sys.argv[1:]))
+   else:
+# use shell interface
 
 # welcome
-   welcome()
+      welcome()
 
-   # main menu shell
-   lcmd().cmdloop()
-   
+# main menu shell
+      lcmd().cmdloop()
+
+# log errors   
 except Exception as e:
    logmsg = "       CRITICAL ERROR: %s" % e
    log(logmsg)
