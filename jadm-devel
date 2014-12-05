@@ -52,7 +52,7 @@ import base64
 ########################################################################################
 
 # jadm version
-jadm_version = "devel ver. 1.0.2"
+jadm_version = "devel ver. 1.0.3"
 
 # jail.conf location by default /etc/jail.conf
 jailconf = '/etc/jail.conf' 
@@ -2100,7 +2100,7 @@ def setup():
 
    print " " 
    set_menu  = ['JADM', 'Settings']
-   bz = [["Bridge interface:", bridge_int], ["Main zfs:", jzfs]]
+   bz = [["Bridge interface:", bridge_int], ["Main zfs:", jzfs], ["Jails path:", jpath]]
    print tabulate(bz, set_menu)
    print " "
   
@@ -3893,6 +3893,12 @@ List available commands with "help" or detailed help with "help cmd".
    print "Welcome to JADM (jail admin) framework"
    print ""
    print tabulate(hostInfo, lmenu)
+
+   print " "
+   set_menu  = ['JADM', 'Settings']
+   bz = [["Bridge interface:", bridge_int], ["Main zfs:", jzfs], ["Jails path: ", jpath]]
+   print tabulate(bz, set_menu)
+
    print welmsg
    
 
