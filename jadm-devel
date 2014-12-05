@@ -52,7 +52,7 @@ import base64
 ########################################################################################
 
 # jadm version
-jadm_version = "devel ver. 1.0.1"
+jadm_version = "devel ver. 1.0.2"
 
 # jail.conf location by default /etc/jail.conf
 jailconf = '/etc/jail.conf' 
@@ -3928,7 +3928,38 @@ try:
 
 # use cli interface
    if len(sys.argv) > 1:
-      lcmd().onecmd(' '.join(sys.argv[1:]))
+
+      if sys.argv[1] in ['-v', '-c', '-m', '-i']:
+
+# cli verbose mode for start/stop jail         
+         if sys.argv[1] == '-v':
+            verbose = 1
+            # prtin and add to log file
+            logmsg = "      INFO: verbose mode enable"
+            log(logmsg)
+
+# cli create jail
+         if sys.argv[1] == '-c':
+            print "jadm cli create"
+            sys.exit(0)
+
+# cli modify jail
+         if sys.argv[1] == '-m':
+            print "jadm cli modify"
+            sys.exit(0)
+
+
+# cli jail - os info
+         if sys.argv[1] == '-i':
+            welcome()
+            sys.exit(0)
+
+         jadmCommand = ' '.join(sys.argv[2:])
+      else:
+         jadmCommand = ' '.join(sys.argv[1:])
+
+# cli command
+      lcmd().onecmd(jadmCommand)
    else:
 # use shell interface
 
