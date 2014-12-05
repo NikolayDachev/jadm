@@ -3921,6 +3921,17 @@ def bytesto(bytes, to, bsize=1024):
 
    return(r)
 
+def jail_create_cli(cliJail):
+
+   jargs = {}
+   for i in cliJail[2:]:
+      jclArg = i.split(':')
+      jargs[jclArg[0]] = jclArg[1]
+
+   print cliJail[1]
+   print jargs
+       
+
 ########################################################################################
 # Start Jadm script
 ########################################################################################
@@ -3947,6 +3958,7 @@ try:
 # cli create jail
          if sys.argv[1] == '-c':
             print "jadm cli create"
+            jail_create_cli(sys.argv)
             sys.exit(0)
 
 # cli modify jail
