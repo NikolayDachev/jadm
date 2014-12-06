@@ -52,7 +52,7 @@ import base64
 ########################################################################################
 
 # jadm version
-jadm_version = "devel ver. 1.0.3"
+jadm_version = "devel ver. 1.0.5"
 
 # jail.conf location by default /etc/jail.conf
 jailconf = '/etc/jail.conf' 
@@ -591,7 +591,7 @@ def zfs_free():
    
    return zfsfree
          
-def jail_create():
+def jail_create(cliConf = None):
    """
 ########################################################################################
 # Create new jail 
@@ -600,6 +600,11 @@ def jail_create():
 # add zfs quota if is needed 
 #
    """
+# check if we use cli config
+   iscli = 0
+   if cliConf:
+      iscli = 1
+       
    jails = jails_list()
 
    print "----------------------------------------------------"
@@ -607,6 +612,14 @@ def jail_create():
    print "----------------------------------------------------"
    
    while True:
+# take cli value       
+      if iscli == 1:
+          jname = cliConf['name']
+          if jname in jails[1]:
+             print "      ERROR: Jail with Name '%s' already exist please choose different name!" % (jname)
+             sys.exit(1)
+          break
+# jadm shell         
       jname = raw_input('Jail Name:> ')
       if jname in ['', ' ', '	']:
          print " "
@@ -625,6 +638,14 @@ def jail_create():
     
    if jname != 'BASE':
       while True:
+# take cli value
+         if iscli == 1:
+            jhostname = cliConf['hostname']
+            if jhostname in jails[5]:
+               print "      ERROR: Jail with Hostname '%s' already exist please choose different name!" % (jhostname)
+               sys.exit(1)
+            break
+# jadm shell
          jhostname = raw_input('Jail Hostname:> ')
          if jhostname in ['', ' ', '   ']:
             print " "
@@ -641,6 +662,17 @@ def jail_create():
             break
 
       while True:
+# take cli value
+         if iscli == 1:
+            jid = cliConf['jid']
+            if jid == "0":
+               print "      ERROR: jail with ID '%s' is reserved for 'BASE' jail skeleton model!" % (jid)
+               sys.exit(1)
+            if jid in jails[2]:
+               print "      ERROR: Jail with ID '%s' already exist please choose different!" % (jid)
+               sys.exit(1)
+            break
+# jadm shell
          jid = raw_input('Jail ID:> ')
          if jid == "!":
             print " "
@@ -663,8 +695,16 @@ def jail_create():
          else:
             break
 # IS VNET ?
-
-      cvnet = raw_input('Vnet support (y):> ')
+      cvnet = 'n'
+# take cli value
+      if iscli == 1:
+         if  'vnet' in cliConf.keys():
+            cvnet = 'y'
+            jgw = cliConf['vnet']
+      else:
+# jadm shell
+         cvnet = raw_input('Vnet support (y):> ')
+         
       if cvnet == "!":
          print " "
          print "      INFO: Interrupted by user"
@@ -674,9 +714,12 @@ def jail_create():
 # apply vnet rules for network
          network = vnet
          isvnet = 'YES'
-
          brin, gwip, gwnet = bridge()
          while True:
+# take cli value
+            if iscli == 1:
+                break
+# jadm shell 
             jgw = raw_input('Jail Gateway number:> ')
             if jgw == "!":
                print "      INFO: Interrupted by user"   
@@ -702,7 +745,10 @@ def jail_create():
          jgw = "system"
 
       while True:
-         jip = raw_input('Jail IP Address:> ')
+         if iscli == 1:
+            jip = cliConf['ip']
+         else:
+            jip = raw_input('Jail IP Address:> ')
          if jip == "!":
             print " "
             print "      INFO: Interrupted by user"
@@ -711,7 +757,10 @@ def jail_create():
          if ch_ipv4(jip) == False:
             print " "
             print "      ERROR: Please enter valid IP address!"
-            continue
+            if iscli == 1:
+               sys.exit(1)
+            else:
+               continue
 
          if 'y' in cvnet:
         
@@ -720,23 +769,40 @@ def jail_create():
             if int(bridge_ip_check) == 0:
                print " "
                print "      ERROR: %s ip addreess not in %s network" % (jip, brnet)
-               continue
+               if iscli == 1:
+                  sys.exit(1)
+               else:
+                  continue
                
             if str(jip) == str(jgw):
                   print " "
                   print "      ERROR: '%s' is Gateway address please enter different!" % (jip)
-                  continue
+                  if iscli == 1:
+                     sys.exit(1)
+                  else:
+                     continue
                   
             jip = str(jip) + str(brnet)[-3:]
 
          if jip in jails[3]:
             print " "
             print "      ERROR: Jail with IP address '%s' already exist please enter different!" % (jip)
+            if iscli == 1:
+               sys.exit(1)
+            else:
+               continue
          else:
             break
          
       while True:
-         jquota = raw_input('ZFS Quota (M)egabytes, (G)igabytes, (none) for unlimited:> ')
+         if iscli == 1:
+           if 'quota' in cliConf.keys():
+              jquota = cliConf['quota']
+           else:
+              jquota = "none"  
+              break
+         else:
+           jquota = raw_input('ZFS Quota (M)egabytes, (G)igabytes, (none) for unlimited:> ')
       
          if jquota == "!":
             print " "
@@ -755,12 +821,18 @@ def jail_create():
          except ValueError:
            print " "
            print "      ERROR: Please use numebrs only with (M)egabytes or (G)igabytes indicator at the end!)"
-           continue
+           if iscli == 1:
+              sys.exit(1)
+           else:
+              continue
 
          if str(jquota[-1]) not in ['M', 'G']:
            print " "
            print "      ERROR: Please use only (M)egabytes or (G)igabytes indicator at the end!)"
-           continue
+           if iscli == 1:
+              sys.exit(1)
+           else:
+              continue
          else:
            break
 
@@ -3923,14 +3995,17 @@ def bytesto(bytes, to, bsize=1024):
 
 def jail_create_cli(cliJail):
 
+ #  clijailConfig = [name, jid,  vnet,  ip,  hostname,  quota,  source,  template ]
+
    jargs = {}
    for i in cliJail[2:]:
       jclArg = i.split(':')
       jargs[jclArg[0]] = jclArg[1]
-
-   print cliJail[1]
+      
    print jargs
-       
+# create jail
+   jail_create(jargs)
+
 
 ########################################################################################
 # Start Jadm script
