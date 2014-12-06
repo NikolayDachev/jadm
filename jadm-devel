@@ -52,7 +52,7 @@ import base64
 ########################################################################################
 
 # jadm version
-jadm_version = "devel ver. 1.0.6"
+jadm_version = "devel ver. 1.0.7"
 
 # jail.conf location by default /etc/jail.conf
 jailconf = '/etc/jail.conf' 
@@ -610,9 +610,12 @@ def jail_create(cliConf = None):
        
    jails = jails_list()
 
-   print "----------------------------------------------------"
-   print "                Create New Jail                     "
-   print "----------------------------------------------------"
+   if iscli == 1:
+       pass
+   else:
+      print "----------------------------------------------------"
+      print "                Create New Jail                     "
+      print "----------------------------------------------------"
    
    while True:
 # take cli value       
@@ -878,11 +881,21 @@ def jail_create(cliConf = None):
          
 # Select template if is needed
    if install_choise == 'template':
-         print " "
-         jail_table('1')
-         
+# take cli value
+         if iscli == 1:
+             pass
+         else:
+             print " "
+             jail_table('1')
+# jadm shell
          while True:
-            jtemplate = raw_input("Template Name/JID:> ")
+# take cli value
+            if iscli == 1:
+                jtemplate = cliConf['install'][1]
+# jadm shell
+            else:
+                jtemplate = raw_input("Template Name/JID:> ")
+                
             if jtemplate == '!':
                print "      INFO: Interrupted by user"
                return False
@@ -899,11 +912,17 @@ def jail_create(cliConf = None):
                   jtemplate = jails[1][j]
                else:
                   print "      ERROR: Jail with ID '%s' not found!" % (jtemplate)
-                  continue
+                  if iscli == 1:
+                      sys.exit(1)
+                  else:
+                     continue
                 
             if jtemplate not in jails[1]:
                print "      ERROR: Jail with name '%s' not found!" % (jtemplate)
-               continue
+               if iscli == 1:
+                 sys.exit(1)
+               else:
+                 continue
 
             tjName = jails[1].index(jtemplate)
             tjIP = jails[4][tjName]
@@ -911,16 +930,25 @@ def jail_create(cliConf = None):
             if isvnet == 'YES':
                if tjIP == 'system':
                   print "      ERROR: NoVnet jail cannot be used as template for Vnet jail!"
-                  continue
+                  if iscli == 1:
+                    sys.exit(1)
+                  else:
+                    continue
 
             if isvnet == 'NO':
                if tjIP != 'system':
                   print "      ERROR: Vnet jail cannot be used as template for NoVnet jail!"
-                  continue
+                  if iscli == 1:
+                     sys.exit(1)
+                  else:
+                     continue
                   
             if jtemplate == 'BASE':
                   print "      ERROR: 'BASE' jail cannot be used as template!"
-                  continue     
+                  if iscli == 1:
+                     sys.exit(1)
+                  else:
+                     continue    
                   
             install_choise_tmp  = ' (%s)'  % jtemplate
             break
@@ -931,14 +959,22 @@ def jail_create(cliConf = None):
 # Select SRC install  if is needed
    if install_choise == 'src':
          src_chlist = ['build', 'install']
-
-         print " "
-         print tabulate([['build', 'build new src world and install'], 
+# take cli value
+         if iscli == 1:
+             pass
+         else:
+             print " "
+             print tabulate([['build', 'build new src world and install'], 
          ['install', 'use already builded world']], ['BSD Source',  'Description'])  
-         print ""
+             print ""
 # we will use jtemplate var for src_choise
          while True:
-            jtemplate = raw_input("Select :>")
+# take cli value
+            if iscli == 1:
+               jtemplate =  cliConf['install'][1]
+            else:
+# jadm shell
+               jtemplate = raw_input("Select :>")
             
             if jtemplate == '!':
                print "      INFO: Interrupted by user"
@@ -970,12 +1006,21 @@ def jail_create(cliConf = None):
             return False
 
    while True:
-      print " "
-      new_jail_menu  = ['New Jail', 'Settings']
-      new_jail_settings = [['Name', jname], ['Hostname', jhostname], ['ID', jid], ['Is Vnet', isvnet],['IP address', jip], ['Gateway', jgw], ['Path', "%s%s" % (jpath, jname)], ['ZFS', "%s/%s" % (jzfs, jname)], ['ZFS Quota', jquota],  ['Install Source',  install_choise+install_choise_tmp]]
-      print tabulate(new_jail_settings, new_jail_menu)
-
-      yn = raw_input("confirm (y/n):> ")
+# cli 
+      if iscli == 1:
+         if  cliConf['autoConfirm'] == 'yes':
+             yn = 'y'
+         else:
+             print " "
+             new_jail_menu  = ['New Jail', 'Settings']
+             new_jail_settings = [['Name', jname], ['Hostname', jhostname], ['ID', jid], ['Is Vnet', isvnet],['IP address', jip], ['Gateway', jgw], ['Path', "%s%s" % (jpath, jname)], ['ZFS', "%s/%s" % (jzfs, jname)], ['ZFS Quota', jquota],  ['Install Source',  install_choise+install_choise_tmp]]
+             print tabulate(new_jail_settings, new_jail_menu)
+# cli
+      if iscli == 1:
+         if  cliConf['autoConfirm'] == 'yes':
+           yn = 'y' 
+         else:
+           yn = raw_input("confirm (y/n):> ")
 
       if yn == "!":
          print " "
@@ -4043,7 +4088,6 @@ def jail_create_cli(cliJail):
    else: 
         jargs['install'] =  [jargs['install']]
        
-   print jargs
 # create jail
    jail_create(jargs)
 
@@ -4062,7 +4106,7 @@ def_vars()
 # use cli interface
 if len(sys.argv) > 1:
 
-      if sys.argv[1] in ['-v', '-c', '-m', '-i']:
+      if sys.argv[1] in ['-y', '-v', '-c', '-m', '-i']:
 
 # cli verbose mode for start/stop jail         
          if sys.argv[1] == '-v':
@@ -4071,9 +4115,15 @@ if len(sys.argv) > 1:
             logmsg = "      INFO: verbose mode enable"
             log(logmsg)
 
+# cli auto confirm
+
+         if '-y' in sys.argv:
+            sys.argv[ sys.argv.index('-y')] = 'autoConfirm:yes'
+         else:
+             sys.argv.append('autoConfirm:no')
+
 # cli create jail
          if sys.argv[1] == '-c':
-            print "jadm cli create"
             jail_create_cli(sys.argv)
             sys.exit(0)
 
