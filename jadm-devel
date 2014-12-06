@@ -52,7 +52,7 @@ import base64
 ########################################################################################
 
 # jadm version
-jadm_version = "devel ver. 1.0.5"
+jadm_version = "devel ver. 1.0.6"
 
 # jail.conf location by default /etc/jail.conf
 jailconf = '/etc/jail.conf' 
@@ -219,7 +219,7 @@ def ch_ipv4(sp):
     except ValueError:
        return False
 
-def bridge(gwc = 0, brc = bridge_int):
+def bridge(gwc = 0, brc = bridge_int,  iscli = 0):
    """
 ########################################################################################
 # find and display in table format existing bridge interfacess in system
@@ -244,10 +244,13 @@ def bridge(gwc = 0, brc = bridge_int):
 
    if gwc == 'check':
        return (br_interface, gw_ipaddr, gw_network)
-
+   
+   if iscli == 0:
 # print jadm gateways  table
-   br_menu = ["Number", "Bridge name", "Gateway IP Address", "Gatewy Network Mask"]
-   print tabulate(br_interface, br_menu)
+      br_menu = ["Number", "Bridge name", "Gateway IP Address", "Gatewy Network Mask"]
+      print tabulate(br_interface, br_menu)
+   else:
+       pass
 
 # return bridge interface name, ip addresses and network mask
    return (br_interface, gw_ipaddr, gw_network)
@@ -700,7 +703,6 @@ def jail_create(cliConf = None):
       if iscli == 1:
          if  'vnet' in cliConf.keys():
             cvnet = 'y'
-            jgw = cliConf['vnet']
       else:
 # jadm shell
          cvnet = raw_input('Vnet support (y):> ')
@@ -714,13 +716,20 @@ def jail_create(cliConf = None):
 # apply vnet rules for network
          network = vnet
          isvnet = 'YES'
-         brin, gwip, gwnet = bridge()
+         brin, gwip, gwnet = bridge(iscli = 1)
          while True:
 # take cli value
             if iscli == 1:
-                break
+               jgw = cliConf['vnet']
+               if jgw in gwip:
+                   gwnet = gwnet[gwip.index(jgw)]
+               else:
+                   print "      ERROR: %s is not valid gateway" % (jgw)
+                   sys.exit(1)
+               break
 # jadm shell 
             jgw = raw_input('Jail Gateway number:> ')
+               
             if jgw == "!":
                print "      INFO: Interrupted by user"   
                return False
@@ -763,7 +772,6 @@ def jail_create(cliConf = None):
                continue
 
          if 'y' in cvnet:
-        
             bridge_ip_check, brnet = bridge_network_check(jip, jgw, gwnet)
   
             if int(bridge_ip_check) == 0:
@@ -840,13 +848,25 @@ def jail_create(cliConf = None):
       network = ['',  '']
       (jhostname, jid, jgw, jip, jquota, isvnet) = ('BASE.localhost',  '0', '0.0.0.0', '0.0.0.0',  'none', 'N/A' )
 
-   print ""
    chlist = ['bsd', 'src', 'template', 'skel', '!']
-   print tabulate([['template', 'existing jail for template' ], ['bsd',  'bdsinstaller'],  ['src', 'bsd sources /usr/src/' ],  
+# tkae cli vlue
+   if iscli == 1:
+       pass
+   else:
+# jadm shell
+      print ""
+      print tabulate([['template', 'existing jail for template' ], ['bsd',  'bdsinstaller'],  ['src', 'bsd sources /usr/src/' ],  
                             ["skel", "jail skeleton model"]], ['Install Source',  'Description'])
-   print ""
+      print ""
    while True:
-      install_choise = raw_input("Install Source:>")
+      if iscli == 1:
+        install_choise = cliConf['install'][0]
+        if install_choise not in chlist:
+           print "      ERROR: type only (template), (bsd), (src), (skel) or (!)"
+           sys.exit(1)
+        break
+      else:
+         install_choise = raw_input("Install Source:>")
       if install_choise == '!':
          print " "
          print "      INFO: Interrupted by user"
@@ -4002,6 +4022,27 @@ def jail_create_cli(cliJail):
       jclArg = i.split(':')
       jargs[jclArg[0]] = jclArg[1]
       
+   if 'template' in jargs['install']:
+        jargs['install'] =  jargs['install'].split('/')
+        
+        if len( jargs['install'] ) != 2:
+             log("       ERROR: Please use 'install:template/Template Name or JID' format!")
+             sys.exit(1)
+        
+   elif 'src' in jargs['install']:
+        jargs['install'] =  jargs['install'].split('/')
+        
+        if len( jargs['install'] ) != 2:
+             log("       ERROR: Please use 'install:src/install or build' format!")
+             sys.exit(1)
+             
+        if  jargs['install'] [1] not in ['build',  'install']:
+             log("       ERROR: Please use 'install:src/install or build' format!")
+             sys.exit(1)
+        
+   else: 
+        jargs['install'] =  [jargs['install']]
+       
    print jargs
 # create jail
    jail_create(jargs)
@@ -4011,15 +4052,15 @@ def jail_create_cli(cliJail):
 # Start Jadm script
 ########################################################################################
 
-try:
+#try:
 # check for existing bridge and zfs 
-   initcheck()
+initcheck()
 
 # load default jadm varibles
-   def_vars()
+def_vars()
 
 # use cli interface
-   if len(sys.argv) > 1:
+if len(sys.argv) > 1:
 
       if sys.argv[1] in ['-v', '-c', '-m', '-i']:
 
@@ -4053,19 +4094,19 @@ try:
 
 # cli command
       lcmd().onecmd(jadmCommand)
-   else:
+else:
 # use shell interface
 
 # welcome
-      welcome()
+   welcome()
 
 # main menu shell
-      lcmd().cmdloop()
+   lcmd().cmdloop()
 
 # log errors   
-except Exception as e:
-   logmsg = "       CRITICAL ERROR: %s" % e
-   log(logmsg)
+#except Exception as e:
+  # logmsg = "       CRITICAL ERROR: %s" % e
+   #log(logmsg)
 
 ########################################################################################
 # End Jadm script 
