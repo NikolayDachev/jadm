@@ -865,7 +865,7 @@ def jail_create(cliConf = None):
       if iscli == 1:
         install_choise = cliConf['install'][0]
         if install_choise not in chlist:
-           print "      ERROR: type only (template), (bsd), (src), (skel) or (!)"
+           print "      ERROR: type only (template), (bsd), (src), (skel) for 'install:' source"
            sys.exit(1)
         break
       else:
@@ -4060,12 +4060,20 @@ def bytesto(bytes, to, bsize=1024):
 
 def jail_create_cli(cliJail):
 
- #  clijailConfig = [name, jid,  vnet,  ip,  hostname,  quota,  source,  template ]
+#mandatory settings 
+   clijailConfig = ['name', 'jid',  'ip',  'hostname',  'install']
 
+# convert cli settings into dictonary
    jargs = {}
    for i in cliJail[2:]:
       jclArg = i.split(':')
       jargs[jclArg[0]] = jclArg[1]
+
+# check for mandatory settings 
+   for i in clijailConfig :
+      if i not in  jargs.keys():
+         log("       ERROR: %s not in %s !" % (i,  clijailConfig))
+         sys.exit(1)
       
    if 'template' in jargs['install']:
         jargs['install'] =  jargs['install'].split('/')
