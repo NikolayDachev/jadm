@@ -1,7 +1,7 @@
 
-!!!PLEASE TRY JADM 2.0, STILL IN DEVELOPMENT BUT WITH MUCH BETTER FUNCTIONALITY, ALSO JADM 1.0 WILL BE ABANDONED VERY SOON!!!
-!!!FO NOW YOU CAN CHECK HELP HOW TO USE IT!!!
-!!! https://github.com/NikolayDachev/jadm2_test/ !!!
+    PLEASE TRY JADM 2.0, STILL IN DEVELOPMENT BUT WITH MUCH BETTER FUNCTIONALITY, ALSO JADM 1.0 WILL BE ABANDONED VERY SOON
+    FOR NOW YOU CAN CHECK HELP HOW TO USE IT
+    https://github.com/NikolayDachev/jadm2_test/ 
 
 Jadm is python script which pars /etc/jail.conf in his own format. Jadm use  zfs  for  jail home also bridge interface and epair interfaces for jail vnet.
 
