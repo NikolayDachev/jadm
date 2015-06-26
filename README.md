@@ -69,3 +69,4 @@ Example FreeBSD config:
     ${fwcmd} -f flush
 
     ${fwcmd} add 65532 divert natd ip from any to any via ${eif}
+    ${fwcmd} add 65533 allow ip from any to any
